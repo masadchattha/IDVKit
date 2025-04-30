@@ -1,0 +1,10 @@
+VerifID — attributions
+
+- OpenJPEG (vendored in Sources/COpenJPEG): BSD-2-Clause, (c) Universite catholique
+  de Louvain and contributors. License text vendored alongside the sources.
+- NFCPassportReader by Andy Qua (MIT) was studied as a reference implementation
+  of ICAO 9303 on iOS. VerifID's eMRTD stack is an independent implementation.
+- The MRZ camera scanner design draws on Apple's "Recognizing text in images"
+  sample code patterns.
+- MobileFaceNet: Chen et al., "MobileFaceNets: Efficient CNNs for Accurate
+  Real-Time Face Verification on Mobile Devices" (2018).
