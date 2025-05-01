@@ -1,0 +1,13 @@
+.DS_Store
+/.build
+.build/
+.build-*/
+Examples/**/.build*/
+/Packages
+xcuserdata/
+DerivedData/
+.swiftpm/
+.netrc
+*.xcodeproj/
+!*.xcodeproj/project.pbxproj
+Examples/**/*.xcodeproj/
