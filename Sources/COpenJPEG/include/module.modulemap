@@ -1,0 +1,4 @@
+module COpenJPEG {
+    header "openjpeg.h"
+    export *
+}
