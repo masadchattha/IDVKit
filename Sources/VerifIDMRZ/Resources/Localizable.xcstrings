@@ -1,0 +1,18 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Close" : {
+
+    },
+    "Position your passport or ID inside the frame. The code lines at the bottom are read automatically." : {
+
+    },
+    "Scan your document" : {
+
+    },
+    "Toggle flashlight" : {
+
+    }
+  },
+  "version" : "1.0"
+}
