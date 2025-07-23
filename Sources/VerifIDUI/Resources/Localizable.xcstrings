@@ -1,0 +1,147 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Blink your left eye" : {
+
+    },
+    "Blink your right eye" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Chip authenticity check failed" : {
+
+    },
+    "Chip could not be verified" : {
+
+    },
+    "Chip data intact" : {
+
+    },
+    "Chip verified" : {
+
+    },
+    "Could not read your passport" : {
+
+    },
+    "Date of birth" : {
+
+    },
+    "Document" : {
+
+    },
+    "Done" : {
+
+    },
+    "Expiry" : {
+
+    },
+    "Face did not match" : {
+
+    },
+    "Face matches the document" : {
+
+    },
+    "Follow a couple of quick prompts so we can match your face to the photo in your document. It only takes a moment." : {
+
+    },
+    "Genuine chip confirmed" : {
+
+    },
+    "Hold still until the read completes." : {
+
+    },
+    "Hold still…" : {
+
+    },
+    "Hold your iPhone against the passport until reading completes." : {
+
+    },
+    "Look straight at the camera" : {
+
+    },
+    "Move to a brighter area" : {
+
+    },
+    "Nationality" : {
+
+    },
+    "Now let's check it's you" : {
+
+    },
+    "Now read the chip" : {
+
+    },
+    "Only one face should be visible" : {
+
+    },
+    "Open your mouth" : {
+
+    },
+    "Position your face in the oval" : {
+
+    },
+    "Reading your passport…" : {
+
+    },
+    "Reference photo set ✓ — tap to change" : {
+
+    },
+    "Remove any case or cover from your iPhone." : {
+
+    },
+    "Rest the top of your iPhone on the document." : {
+
+    },
+    "Scan chip" : {
+
+    },
+    "Scan your passport or ID, read its chip, and confirm it's really you. Everything happens on this device." : {
+
+    },
+    "Scanned MRZ matches the chip" : {
+
+    },
+    "Secured on-device by VerifID" : {
+
+    },
+    "Sex" : {
+
+    },
+    "Skip" : {
+
+    },
+    "Smile" : {
+
+    },
+    "Start" : {
+
+    },
+    "Start face scan" : {
+
+    },
+    "Try again" : {
+
+    },
+    "Turn your head left" : {
+
+    },
+    "Turn your head right" : {
+
+    },
+    "Use a photo as reference (testing)" : {
+
+    },
+    "Verify your identity" : {
+
+    },
+    "Verifying…" : {
+
+    },
+    "Your document has an NFC chip. Keep it flat on a surface." : {
+
+    }
+  },
+  "version" : "1.0"
+}
