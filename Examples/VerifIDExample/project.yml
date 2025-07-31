@@ -1,0 +1,43 @@
+name: VerifIDExample
+options:
+  bundleIdPrefix: dev.verifid
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+
+packages:
+  VerifID:
+    path: ../..
+
+targets:
+  VerifIDExample:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+      - path: Resources
+        buildPhase: resources
+    dependencies:
+      - package: VerifID
+        product: VerifID
+    entitlements:
+      path: Sources/VerifIDExample.entitlements
+      properties:
+        com.apple.developer.nfc.readersession.formats: [TAG]
+    info:
+      path: Sources/Info.plist
+      properties:
+        UILaunchScreen: {}
+        CFBundleDisplayName: VerifID Example
+        NFCReaderUsageDescription: This app reads your passport chip to demonstrate identity verification. All processing stays on this device.
+        NSCameraUsageDescription: The camera scans your passport's machine-readable zone and performs the liveness check. Images never leave this device.
+        com.apple.developer.nfc.readersession.iso7816.select-identifiers:
+          - "A0000002471001"
+          - "A0000002472001"
+          - "00000000000000"
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        CODE_SIGN_STYLE: Automatic
