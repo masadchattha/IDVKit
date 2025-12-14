@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & test (iOS)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Show environment
+        run: |
+          swift --version
+          xcodebuild -version
+
+      - name: Resolve packages
+        run: xcodebuild -resolvePackageDependencies -scheme VerifID-Package
+
+      - name: Build
+        run: >
+          xcodebuild build
+          -scheme VerifID
+          -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
+
+      - name: Test
+        run: >
+          xcodebuild test
+          -scheme VerifID-Package
+          -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
+          -resultBundlePath TestResults.xcresult
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults
+          path: TestResults.xcresult
+          if-no-files-found: ignore
