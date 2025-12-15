@@ -1,0 +1,53 @@
+name: Bug report
+description: Something isn't working as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - MRZ scanning
+        - NFC chip reading
+        - Passive / active authentication
+        - Face match / liveness
+        - Drop-in UI flow
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device & iOS version
+      placeholder: iPhone 15 Pro, iOS 18.2
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: VerifID version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Enable `VIDLog.isEnabled = true` and paste relevant `dev.verifid` output (never include biometric data).
+      render: shell
