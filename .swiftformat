@@ -1,0 +1,13 @@
+# SwiftFormat configuration for VerifID
+--swiftversion 6.0
+--indent 4
+--maxwidth 100
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+--self remove
+--importgrouping alpha
+--commas inline
+--trimwhitespace always
+--stripunusedargs closure-only
+--disable redundantType
