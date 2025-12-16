@@ -1,0 +1,38 @@
+# SwiftFormat configuration for VerifID.
+# Pinned so local runs and CI (`swiftformat --lint`) agree exactly.
+# Philosophy: enforce consistency (indent, self, imports, whitespace) without
+# reflowing hand-tuned layout — crypto/OID code in VerifIDNFC stays readable.
+
+--swiftversion 6.0
+--indent 4
+--self remove
+--importgrouping alpha
+--commas inline
+--trimwhitespace always
+--stripunusedargs closure-only
+
+# Keep access control on each declaration. VerifID treats public/package/
+# internal as a first-class design surface, so ACL stays explicit per member
+# rather than being hoisted onto the enclosing extension.
+--extensionacl on-declarations
+
+# Respect authored wrapping — don't force-wrap arguments/collections to a max
+# width. This avoids exploding short OID arrays and multi-arg crypto calls.
+--wraparguments preserve
+--wrapparameters preserve
+--wrapcollections preserve
+
+# Disabled rules:
+#  redundantType         — explicit types are often clearer at the API surface.
+#  numberFormatting      — never digit-group OID / hex constants in crypto code.
+#  wrapMultilineStatementBraces — leave brace placement as authored.
+#  docComments           — parses the @Entry macro inconsistently across
+#                          environments (green locally, red in CI); opinionated
+#                          about // vs ///. Not worth the nondeterminism.
+#  redundantSendable     — its "is Sendable redundant?" inference depends on the
+#                          host toolchain, so local and CI disagree. Keeping
+#                          explicit Sendable is harmless and clearer anyway.
+--disable redundantType,numberFormatting,wrapMultilineStatementBraces,docComments,redundantSendable
+
+# Exclude generated / vendored / sample paths.
+--exclude .build,Examples,Sources/VerifIDJPEG2000/COpenJPEG
