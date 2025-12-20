@@ -1,0 +1,29 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  swiftformat:
+    name: SwiftFormat (lint)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+
+      # Pin the exact version the codebase was formatted with, so a newer
+      # SwiftFormat release changing a default rule can't spuriously fail CI.
+      - name: Install SwiftFormat (pinned)
+        env:
+          SWIFTFORMAT_VERSION: "0.62.1"
+        run: |
+          curl -fsSL -o swiftformat.zip \
+            "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip"
+          unzip -o swiftformat.zip -d swiftformat-bin
+          sudo mv swiftformat-bin/swiftformat /usr/local/bin/swiftformat
+          swiftformat --version
+
+      - name: Check formatting
+        run: swiftformat --lint --verbose .
