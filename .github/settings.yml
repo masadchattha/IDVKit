@@ -1,0 +1,28 @@
+# Repository configuration for the "Settings" GitHub App
+# (https://github.com/repository-settings/app). Documents the intended repo
+# rules; enabling the app applies them. Without the app, mirror these under
+# Settings → Branches manually.
+
+repository:
+  has_issues: true
+  has_projects: false
+  has_wiki: false
+  allow_squash_merge: true
+  allow_merge_commit: false
+  allow_rebase_merge: true
+  delete_branch_on_merge: true
+
+branches:
+  - name: main
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 1
+        dismiss_stale_reviews: true
+      required_status_checks:
+        strict: true
+        contexts:
+          - "Build & test (iOS)"
+          - "SwiftFormat (lint)"
+      enforce_admins: false
+      required_linear_history: true
+      restrictions: null
