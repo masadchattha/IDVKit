@@ -203,7 +203,14 @@ public struct VIDFaceConfiguration: Sendable {
     /// embeddings. Raise for stricter matching (more false rejections),
     /// lower for laxer matching (more false accepts).
     public var matchThreshold: Float
-    /// How the liveness challenges are chosen (random count, or a fixed list).
+    /// Which liveness strategy the capture runs. Defaults to
+    /// ``VIDLivenessMode/headRotation`` — the strongest anti-spoof on a
+    /// TrueDepth device and free of any "turn left/right" ambiguity.
+    public var livenessMode: VIDLivenessMode
+    /// Whether a short coaching tutorial is shown before liveness begins.
+    public var showsTutorial: Bool
+    /// How the (optional) active challenges are chosen (random count, or a fixed
+    /// list). Only consulted when ``livenessMode`` includes active challenges.
     public var challenges: ChallengeSelection
     /// Seconds allowed per individual challenge.
     public var challengeTimeout: TimeInterval
@@ -223,6 +230,8 @@ public struct VIDFaceConfiguration: Sendable {
 
     public init(
         matchThreshold: Float = 0.65,
+        livenessMode: VIDLivenessMode = .headRotation,
+        showsTutorial: Bool = true,
         challenges: ChallengeSelection = .random(count: 2),
         challengeTimeout: TimeInterval = 10,
         sessionTimeout: TimeInterval = 90,
@@ -231,12 +240,43 @@ public struct VIDFaceConfiguration: Sendable {
         allowsDebugPhotoMatch: Bool = false
     ) {
         self.matchThreshold = matchThreshold
+        self.livenessMode = livenessMode
+        self.showsTutorial = showsTutorial
         self.challenges = challenges
         self.challengeTimeout = challengeTimeout
         self.sessionTimeout = sessionTimeout
         self.maxRetries = maxRetries
         self.microMovementThreshold = microMovementThreshold
         self.allowsDebugPhotoMatch = allowsDebugPhotoMatch
+    }
+}
+
+/// The liveness strategy used during selfie capture.
+///
+/// The default, ``headRotation``, is where the industry (and Apple's Face ID
+/// enrollment) has converged: the user rotates their head to fill a ring, which
+/// on a TrueDepth device is a genuine 3D-presence signal and avoids the
+/// mirror-vs-anatomical "turn left/right" confusion of verbal challenges.
+public enum VIDLivenessMode: String, Sendable, CaseIterable {
+    /// Head-rotation ring only, plus the passive micro-movement anti-spoof gate.
+    /// Recommended default.
+    case headRotation
+    /// Randomised active challenges only (blink, smile, open mouth, head turn).
+    case activeChallenges
+    /// Active challenges first, then the head-rotation ring.
+    case both
+    /// No user actions — relies solely on the passive micro-movement gate and
+    /// (on TrueDepth) depth. Smoothest, but leans hardest on the anti-spoof gate.
+    case passive
+
+    /// Whether this mode runs the randomised active challenges.
+    public var usesActiveChallenges: Bool {
+        self == .activeChallenges || self == .both
+    }
+
+    /// Whether this mode runs the head-rotation ring phase.
+    public var usesHeadRotation: Bool {
+        self == .headRotation || self == .both
     }
 }
 
