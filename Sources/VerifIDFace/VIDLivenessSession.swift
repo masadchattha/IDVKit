@@ -12,14 +12,15 @@ import VerifIDCore
 
 /// One frame of face-tracking data, reduced to the plain values liveness needs.
 ///
-/// Blend-shape fields use **ARKit's** naming (the front camera is mirrored, so
-/// ARKit's `eyeBlinkLeft` is the user's *right* eye — ``VIDLivenessSession``
-/// applies that correction). Decoupling from `ARFaceAnchor` keeps the liveness
-/// logic unit-testable without a camera and free of an ARKit import.
+/// Blend-shape fields use ARKit's naming, which per Apple is **relative to the
+/// face itself** — `eyeBlinkLeft` is the user's *own* left eye, `eyeBlinkRight`
+/// their own right eye (see `ARFaceAnchor.BlendShapeLocation`). No mirror swap is
+/// applied. Decoupling from `ARFaceAnchor` keeps the liveness logic
+/// unit-testable without a camera and free of an ARKit import.
 package struct VIDFaceFrame: Sendable, Equatable {
-    /// ARKit `eyeBlinkLeft` (the user's right eye), 0…1.
+    /// Blink amount of the user's own left eye (ARKit `eyeBlinkLeft`), 0…1.
     package var eyeBlinkLeft: Float
-    /// ARKit `eyeBlinkRight` (the user's left eye), 0…1.
+    /// Blink amount of the user's own right eye (ARKit `eyeBlinkRight`), 0…1.
     package var eyeBlinkRight: Float
     /// Left mouth-corner smile, 0…1.
     package var smileLeft: Float
@@ -27,17 +28,26 @@ package struct VIDFaceFrame: Sendable, Equatable {
     package var smileRight: Float
     /// Jaw-open amount, 0…1.
     package var jawOpen: Float
-    /// Head yaw in radians (+ = the user's head turned to their right).
+    /// Head yaw in radians. Per ARKit's documented axes (+x = the face's own
+    /// left), **+ = the user turned their head to their own left**.
     package var yaw: Float
-    /// Head pitch in radians.
+    /// Head pitch in radians (+ = looking up).
     package var pitch: Float
     /// Distance from camera in metres.
     package var distance: Float
+    /// Screen-space X of where the nose points, **camera-relative and mirrored**
+    /// to match the selfie preview (+ = the user's head turned toward the side that
+    /// appears right on screen). ~0 when frontal, grows as the head turns. Drives
+    /// the head-rotation ring.
+    package var directionX: Float
+    /// Screen-space Y of where the nose points, camera-relative (+ = looking up).
+    package var directionY: Float
 
     package init(
         eyeBlinkLeft: Float = 0, eyeBlinkRight: Float = 0,
         smileLeft: Float = 0, smileRight: Float = 0, jawOpen: Float = 0,
-        yaw: Float = 0, pitch: Float = 0, distance: Float = 0.4
+        yaw: Float = 0, pitch: Float = 0, distance: Float = 0.4,
+        directionX: Float = 0, directionY: Float = 0
     ) {
         self.eyeBlinkLeft = eyeBlinkLeft
         self.eyeBlinkRight = eyeBlinkRight
@@ -47,6 +57,8 @@ package struct VIDFaceFrame: Sendable, Equatable {
         self.yaw = yaw
         self.pitch = pitch
         self.distance = distance
+        self.directionX = directionX
+        self.directionY = directionY
     }
 }
 
@@ -61,6 +73,10 @@ package final class VIDLivenessSession {
     /// The challenges the user must complete, in order.
     package private(set) var challenges: [VIDLivenessChallenge]
     package private(set) var currentChallengeIndex = 0
+
+    /// The "rotate to fill the ring" phase tracker (used when
+    /// ``VIDFaceConfiguration/livenessMode`` includes head rotation).
+    package let headRotation = VIDHeadRotationTracker()
 
     private var yawSamples: [Float] = []
 
@@ -92,6 +108,7 @@ package final class VIDLivenessSession {
         challenges = Self.makeChallenges(configuration.challenges)
         currentChallengeIndex = 0
         yawSamples = []
+        headRotation.reset()
     }
 
     private static func makeChallenges(_ selection: VIDFaceConfiguration.ChallengeSelection) -> [VIDLivenessChallenge] {
@@ -133,9 +150,15 @@ package final class VIDLivenessSession {
     }
 
     /// Whether the given frame satisfies a challenge.
+    ///
+    /// The front-camera preview is **mirrored** (selfie mirror), so the prompt's
+    /// "left/right" is what the user sees on the mirrored screen — which is the
+    /// opposite anatomical side. Device testing confirms: "blink your left eye"
+    /// means the eye on the left of the mirror = ARKit `eyeBlinkRight`, and "turn
+    /// left" (on-screen) is −yaw. Both are swapped from the raw ARKit convention to
+    /// match what the user actually perceives.
     package static func evaluate(_ challenge: VIDLivenessChallenge, frame: VIDFaceFrame) -> Bool {
         switch challenge {
-        // Front camera is mirrored: the user's left eye is ARKit's `eyeBlinkRight`.
         case .blinkLeft: frame.eyeBlinkRight > Threshold.blink
         case .blinkRight: frame.eyeBlinkLeft > Threshold.blink
         case .smile: frame.smileLeft > Threshold.smile && frame.smileRight > Threshold.smile
