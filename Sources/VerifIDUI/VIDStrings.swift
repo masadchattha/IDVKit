@@ -111,19 +111,53 @@ enum VIDStrings {
         nonisolated(unsafe) static let verifying: LocalizedStringKey = "Verifying…"
         nonisolated(unsafe) static let multipleFacesWarning: LocalizedStringKey = "Only one face should be visible"
         nonisolated(unsafe) static let lowLightWarning: LocalizedStringKey = "Move to a brighter area"
+        /// Distance coaching, shown while positioning.
+        nonisolated(unsafe) static let moveCloser: LocalizedStringKey = "Move a little closer"
+        nonisolated(unsafe) static let moveBack: LocalizedStringKey = "Move a little back"
+
+        // Head-rotation ring phase
+        nonisolated(unsafe) static let rotateHead: LocalizedStringKey = "Slowly move your head in a circle"
+        nonisolated(unsafe) static let keepGoing: LocalizedStringKey = "Keep going — almost there"
+        /// Accessibility escape hatch shown during the ring phase (Apple's label).
+        nonisolated(unsafe) static let accessibilityOptions: LocalizedStringKey = "Accessibility Options"
+
+        /// Success caption held briefly before the flow advances.
+        nonisolated(unsafe) static let allSet: LocalizedStringKey = "All set"
+        /// Title on the face-check failure screen (the reason is the subtitle).
+        nonisolated(unsafe) static let failTitle: LocalizedStringKey = "Let's try that again"
 
         /// Terminal failure messages. Plain `String`, not `LocalizedStringKey` —
         /// they're stored as the associated value of `FaceStep.failed(String)` and
         /// rendered with `Text(verbatim:)`.
+        ///
+        /// Note: liveness/anti-spoof and face-mismatch outcomes are deliberately
+        /// **generic** to the end user — revealing *why* a check failed helps an
+        /// attacker iterate. The precise result is always available to the
+        /// integrator on `VIDFaceMatchResult` / `VIDLivenessOutcome`.
         enum Failure {
             static let unsupportedDevice = "Face scanning needs a device with Face ID (TrueDepth camera)."
-            static let faceMismatch = "Your face didn't match the document photo."
-            static let noFaceDetected = "We couldn't see your face clearly. Try again."
-            static let multipleFaces = "More than one face was in view. Make sure you're the only person visible."
-            static let generic = "Verification failed. Please try again."
-            static let challengeTimeout = "Challenge timed out. Try again."
-            static let sessionTimeout = "Session timed out. Please try again."
+            static let faceMismatch = "Make sure your face is well lit and fully inside the circle."
+            static let noFaceDetected = "Move somewhere brighter and centre your face in the circle."
+            static let multipleFaces = "Make sure you're the only person in view."
+            static let generic = "Something went wrong — let's give it another go."
+            static let challengeTimeout = "That took a little long. Let's try once more."
+            static let sessionTimeout = "That took a little long. Let's try once more."
         }
+    }
+
+    /// Pre-liveness coaching tutorial. An auto-advancing, swipeable pager whose
+    /// pages are chosen to match the liveness mode; each page animates the action.
+    enum Tutorial {
+        nonisolated(unsafe) static let title: LocalizedStringKey = "Let's check it's really you"
+        nonisolated(unsafe) static let pageFit: LocalizedStringKey = "Fit your face inside the circle"
+        nonisolated(unsafe) static let pageRotate: LocalizedStringKey = "Slowly move your head to complete the circle"
+        nonisolated(unsafe) static let pageBlinkLeft: LocalizedStringKey = "When asked, blink your left eye"
+        nonisolated(unsafe) static let pageBlinkRight: LocalizedStringKey = "When asked, blink your right eye"
+        nonisolated(unsafe) static let pageSmile: LocalizedStringKey = "When asked, give a little smile"
+        nonisolated(unsafe) static let pageOpenMouth: LocalizedStringKey = "When asked, open your mouth"
+        nonisolated(unsafe) static let pageTurnLeft: LocalizedStringKey = "When asked, turn your head left"
+        nonisolated(unsafe) static let pageTurnRight: LocalizedStringKey = "When asked, turn your head right"
+        nonisolated(unsafe) static let pageHold: LocalizedStringKey = "Hold still and look at the camera"
     }
 
     enum Challenge {
@@ -151,6 +185,28 @@ enum VIDStrings {
     }
 
     nonisolated(unsafe) static let securedBadge: LocalizedStringKey = "Secured on-device by VerifID"
+
+    /// Contextual help shown from the top-bar Help button, as an alert.
+    enum Help {
+        nonisolated(unsafe) static let button: LocalizedStringKey = "Help"
+        nonisolated(unsafe) static let ok: LocalizedStringKey = "Got it"
+        nonisolated(unsafe) static let nfcTitle: LocalizedStringKey = "Tips for reading the chip"
+        nonisolated(unsafe) static let nfcTips: LocalizedStringKey = """
+        • Rest the top of your iPhone flat on the passport's photo page.
+        • Keep both still until the read finishes.
+        • Remove any case — thick or metal cases block the chip.
+        • If it won't start, slide the phone slowly around the top half of the cover.
+        • Make sure your document has the chip symbol.
+        """
+        nonisolated(unsafe) static let faceTitle: LocalizedStringKey = "Tips for the face check"
+        nonisolated(unsafe) static let faceTips: LocalizedStringKey = """
+        • Find even, bright light — face a window.
+        • Remove hats, sunglasses or masks.
+        • Hold the phone at eye level.
+        • Keep your whole face inside the circle.
+        • Move slowly and steadily.
+        """
+    }
 
     enum DocumentKind {
         nonisolated(unsafe) static let passportTitle: LocalizedStringKey = "Passport"
