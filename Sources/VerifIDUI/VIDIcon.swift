@@ -33,6 +33,10 @@ enum VIDIcon {
     static let close = "xmark.circle.fill"
     static let multipleFaces = "person.2.slash.fill"
     static let lowLight = "lightbulb.slash.fill"
+    /// Success checkmark shown on the capture success state.
+    static let success = "checkmark"
+    /// Top-bar help button.
+    static let help = "questionmark.circle"
 
     // Result badges
     static let mrzMatchesChip = "checkmark.circle.fill"

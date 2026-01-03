@@ -47,6 +47,10 @@ enum VIDLayout {
         static let warning: CGFloat = 56
         /// Liveness challenge glyph (e.g. the eye/smile icon above the prompt). 40
         static let challenge: CGFloat = 40
+        /// Success checkmark on the capture success state. 60
+        static let success: CGFloat = 60
+        /// Tutorial guidance-point icon. 24
+        static let tutorialPoint: CGFloat = 24
     }
 
     /// Fixed element dimensions.
@@ -97,14 +101,12 @@ enum VIDLayout {
         /// Minimum tappable height for the flow's full-width buttons. 52
         static let buttonHeight: CGFloat = 52
 
-        // Face capture oval (VIDFaceCaptureView)
-        /// Horizontal inset subtracted from the screen width before capping. 80
-        static let ovalHorizontalInset: CGFloat = 80
-        /// Cap on the oval's width. 300
+        // Face capture circle (VIDFaceCaptureView) — Apple Face-ID proportions
+        /// Circle diameter as a fraction of the screen width. 0.68
+        static let captureCircleFactor: CGFloat = 0.68
+        /// Cap on the capture circle's diameter. 300
         static let ovalMaxWidth: CGFloat = 300
-        /// Oval height ÷ width. 1.3
-        static let ovalAspectRatio: CGFloat = 1.3
-        /// Vertical center of the oval, as a fraction of the screen height. 0.4
+        /// Vertical center of the circle, as a fraction of the screen height. 0.4
         static let ovalVerticalPositionFactor: CGFloat = 0.4
 
         // Liveness challenge HUD
@@ -117,6 +119,27 @@ enum VIDLayout {
         static let challengeCapsuleInactiveWidth: CGFloat = 14
         /// Capsule height for the challenge-progress dots. 5
         static let challengeCapsuleHeight: CGFloat = 5
+
+        // Head-rotation ring (VIDHeadRotationRing) — radial ticks around the oval,
+        // Apple-Face-ID style.
+        /// Gap in points between the oval's edge and the tick ring. 18
+        static let ringOvalGap: CGFloat = 18
+        /// Radial tick length. 13
+        static let ringTickLength: CGFloat = 13
+        /// Radial tick thickness. 3.5
+        static let ringTickThickness: CGFloat = 3.5
+        /// Success checkmark circle behind the glyph on the success state. 108
+        static let successBadge: CGFloat = 108
+
+        // Pre-liveness tutorial (VIDFaceTutorialView) — Apple-Face-ID-style pager
+        /// Overall tutorial ring+face frame. 200
+        static let tutorialDemo: CGFloat = 200
+        /// Smiley-face circle diameter inside the tutorial ring. 124
+        static let tutorialCircle: CGFloat = 124
+        /// Height of the swipeable tutorial pager (face + caption). 280
+        static let tutorialPagerHeight: CGFloat = 280
+        /// Custom pager dot diameter. 8
+        static let pagerDot: CGFloat = 8
 
         // Face-match result thumbnails
         /// Document portrait shown on the result screen. 96
@@ -153,6 +176,28 @@ enum VIDLayout {
         static let wave: CGFloat = 4.5
         /// Face-oval capture guide. 4
         static let ovalGuide: CGFloat = 4
+        /// Head-rotation ring segment. 6
+        static let ringSegment: CGFloat = 6
+    }
+
+    /// Head-rotation ring geometry.
+    enum Ring {
+        /// Angular gap between adjacent segments, in degrees. 5
+        static let segmentGapDegrees: Double = 5
+    }
+
+    /// Soft "Siri"-style glow haloing the capture circle.
+    enum Glow {
+        /// Added to the circle diameter so the halo sits just outside it. 26
+        static let inset: CGFloat = 26
+        /// Blurred gradient ring width. 24
+        static let lineWidth: CGFloat = 24
+        /// Blur radius softening the ring into a glow. 20
+        static let blur: CGFloat = 20
+        /// Overall glow opacity. 0.6
+        static let opacity: CGFloat = 0.6
+        /// Seconds for one full rotation of the gradient. 6
+        static let rotationPeriod: Double = 6
     }
 
     /// Opacity stops.
@@ -179,6 +224,10 @@ enum VIDLayout {
         static let bannerShadow: CGFloat = 0.25
         /// Muted secondary text on a dark background (e.g. the failure Cancel). 0.8
         static let mutedOnDark: CGFloat = 0.8
+        /// Unfilled head-rotation ring tick in the tutorial illustration. 0.35
+        static let ringInactive: CGFloat = 0.35
+        /// Scrim behind the capture success overlay. 0.5
+        static let successScrim: CGFloat = 0.5
     }
 
     /// Animation timing.
@@ -211,6 +260,16 @@ enum VIDLayout {
         static let captureFlashDelay: TimeInterval = 0.3
         /// Pause on the success pulse before advancing to the next challenge. 0.5
         static let challengeTransition: TimeInterval = 0.5
+        /// Head-rotation ring segment fill animation. 0.2
+        static let ringSegmentFill: Double = 0.2
+        /// Pause on the fully-filled green ring so the user sees it complete before
+        /// the flow moves on to the neutral capture. 1.3
+        static let ringCompletePause: TimeInterval = 1.3
+        /// Hold on the success checkmark before the flow advances. 0.7
+        static let successDwell: TimeInterval = 0.7
+        /// Fallback for the head-rotation phase if it's never completed (auto-
+        /// advances to capture so the user is never stuck). 25
+        static let headRotationTimeout: TimeInterval = 25
     }
 
     /// Unitless scale factors.
@@ -223,6 +282,8 @@ enum VIDLayout {
         static let waveMax: CGFloat = 1.5
         /// Extra padding factor applied to a document row's default padding. 0.75
         static let rowPaddingFactor: CGFloat = 0.75
+        /// Design-preview placeholder glyph size, as a fraction of the circle. 0.4
+        static let placeholderGlyph: CGFloat = 0.4
     }
 
     /// Spring animation parameters.
@@ -256,6 +317,15 @@ enum VIDLayout {
     enum FaceTracking {
         /// Tracked faces (so a second face can be detected and rejected). 2
         static let maxTrackedFaces: Int = 2
+    }
+
+    /// Face-distance coaching thresholds, in raw ARKit metres (device-tuned:
+    /// `ARFaceAnchor` translation z). Outside this band the user is nudged.
+    enum Distance {
+        /// Beyond this, show "move closer". 0.55 m
+        static let tooFar: Float = 0.55
+        /// Nearer than this, show "move back". 0.22 m
+        static let tooClose: Float = 0.22
     }
 
     /// Fixed background tints (theme-independent — used behind hero art so it
