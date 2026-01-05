@@ -24,9 +24,15 @@ public struct VIDFaceCaptureView: View {
     let configuration: VIDFaceConfiguration
     let onComplete: (VIDLivenessOutcome, VIDFaceMatchResult) -> Void
     let onCancel: () -> Void
+    /// DEBUG design-review only: renders the capture UI with a placeholder instead
+    /// of the live camera and auto-drives the ring, so the design can be seen in
+    /// the Simulator (which has no camera). Always `false` in shipping builds.
+    private let debugDesignPreview: Bool
 
     @Environment(\.vidTheme) private var theme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @StateObject private var model: Model
+    @State private var showFaceHelp = false
 
     public init(
         reference: CGImage,
@@ -38,54 +44,129 @@ public struct VIDFaceCaptureView: View {
         self.configuration = configuration
         self.onComplete = onComplete
         self.onCancel = onCancel
+        debugDesignPreview = false
         _model = StateObject(wrappedValue: Model(reference: reference, configuration: configuration,
                                                  onComplete: onComplete, onCancel: onCancel))
     }
+
+    #if DEBUG
+        /// DEBUG-only: renders the capture design in the Simulator with a
+        /// placeholder camera and an auto-filling ring. Not shipping API.
+        public init(designPreview reference: CGImage, configuration: VIDFaceConfiguration = .init(),
+                    onCancel: @escaping () -> Void = {}) {
+            self.reference = reference
+            self.configuration = configuration
+            onComplete = { _, _ in }
+            self.onCancel = onCancel
+            debugDesignPreview = true
+            _model = StateObject(wrappedValue: Model(reference: reference, configuration: configuration,
+                                                     onComplete: { _, _ in }, onCancel: onCancel, debugDesignPreview: true))
+        }
+    #endif
 
     public var body: some View {
         GeometryReader { geo in
             let oval = ovalRect(in: geo.size)
             ZStack {
-                VIDLivenessARView(
-                    onFrame: model.handleFrame,
-                    onFaceLost: model.handleFaceLost,
-                    onCapture: model.handleCapture,
-                    onLightEstimate: model.handleLight,
-                    onFaceCount: model.handleFaceCount,
-                    onUnsupported: model.handleUnsupported,
-                    captureRequested: $model.captureRequested,
-                    sessionPaused: $model.sessionPaused
-                )
+                // Tutorial and live capture are mutually exclusive full screens, so
+                // one cleanly replaces the other — the camera/oval never bleeds
+                // through a cross-fade, and the front camera isn't started until the
+                // user leaves the tutorial.
+                if model.step == .tutorial {
+                    VIDFaceTutorialView(mode: configuration.livenessMode, challenges: model.challenges,
+                                        onStart: model.beginLiveness, onCancel: model.cancel)
+                } else {
+                    // Apple Face-ID layout: pure-black screen with the camera shown
+                    // ONLY inside the circle (never full-screen), a soft Siri-style
+                    // glow, then the tick ring around it.
+                    cameraCircle(oval)
 
-                // Dim everything outside the face oval.
-                theme.overlayScrim
-                    .mask {
-                        Rectangle()
-                            .overlay(Ellipse().frame(width: oval.width, height: oval.height).position(x: oval.midX, y: oval.midY).blendMode(.destinationOut))
+                    if model.showsGlow {
+                        VIDSiriGlow(diameter: oval.width + VIDLayout.Glow.inset)
+                            .position(x: oval.midX, y: oval.midY)
                     }
 
-                Ellipse()
-                    .stroke(ovalColor, style: .init(lineWidth: VIDLayout.Stroke.ovalGuide, lineCap: .round))
-                    .frame(width: oval.width, height: oval.height)
-                    .position(x: oval.midX, y: oval.midY)
-                    .scaleEffect(model.showPulse ? VIDLayout.Scale.ovalPulse : 1.0)
-                    .animation(.easeOut(duration: VIDLayout.Duration.ovalPulse), value: model.showPulse)
-                    .animation(.easeInOut(duration: VIDLayout.Duration.ovalStateChange), value: model.ovalState)
+                    Circle()
+                        .stroke(ovalColor, style: .init(lineWidth: VIDLayout.Stroke.hairline, lineCap: .round))
+                        .frame(width: oval.width, height: oval.height)
+                        .position(x: oval.midX, y: oval.midY)
+                        .scaleEffect(model.showPulse ? VIDLayout.Scale.ovalPulse : 1.0)
+                        .animation(.easeOut(duration: VIDLayout.Duration.ovalPulse), value: model.showPulse)
+                        .animation(.easeInOut(duration: VIDLayout.Duration.ovalStateChange), value: model.ovalState)
 
-                chrome(oval: oval, safeArea: realSafeAreaInsets)
+                    // Uniform tick ring for the head-rotation phase; it stays visible
+                    // (fully filled) through the neutral-pose capture.
+                    if model.showsRing {
+                        VIDHeadRotationRing(
+                            filled: model.ringFilled,
+                            ovalSize: CGSize(width: oval.width, height: oval.height),
+                            activeColor: VIDColor.tickLit,
+                            idleColor: VIDColor.tickIdle
+                        )
+                        .position(x: oval.midX, y: oval.midY)
+                    }
 
-                if model.step == .processing {
-                    processingOverlay
-                }
-                if case let .failed(message) = model.step {
-                    failureOverlay(message)
+                    chrome(oval: oval, safeArea: realSafeAreaInsets)
+
+                    if model.step == .processing {
+                        processingOverlay
+                    }
+                    if model.step == .success {
+                        successOverlay
+                    }
+                    if case let .failed(message) = model.step {
+                        failureOverlay(message)
+                    }
                 }
             }
         }
         .ignoresSafeArea()
-        .background(Color.black)
-        .onAppear(perform: model.start)
+        // Follows the system theme: white in light, black in dark.
+        .background(theme.background)
+        .vidFaceHelpAlert(isPresented: $showFaceHelp)
+        .onAppear {
+            model.prefersReducedMotion = reduceMotion
+            model.start()
+        }
         .onDisappear(perform: model.stop)
+    }
+
+    /// The live camera (or a placeholder in the Simulator design-preview) shown
+    /// ONLY inside the circle, on the black background — Apple's framing.
+    @ViewBuilder
+    private func cameraCircle(_ oval: CGRect) -> some View {
+        Group {
+            #if DEBUG
+                if debugDesignPreview {
+                    ZStack {
+                        VIDColor.cameraPlaceholder
+                        Image(systemName: VIDIcon.faceIntro)
+                            .font(.system(size: oval.width * VIDLayout.Scale.placeholderGlyph))
+                            .foregroundStyle(VIDColor.cameraPlaceholderGlyph)
+                    }
+                } else {
+                    liveCamera
+                }
+            #else
+                liveCamera
+            #endif
+        }
+        .frame(width: oval.width, height: oval.height)
+        .clipShape(Circle())
+        .position(x: oval.midX, y: oval.midY)
+    }
+
+    private var liveCamera: some View {
+        VIDLivenessARView(
+            onFrame: model.handleFrame,
+            onFaceLost: model.handleFaceLost,
+            onCapture: model.handleCapture,
+            onLightEstimate: model.handleLight,
+            onFaceCount: model.handleFaceCount,
+            onUnsupported: model.handleUnsupported,
+            captureRequested: $model.captureRequested,
+            sessionPaused: $model.sessionPaused
+        )
     }
 
     // MARK: Layout
@@ -96,21 +177,24 @@ public struct VIDFaceCaptureView: View {
         .vidKeyWindowSafeArea
     }
 
+    /// The face guide is a **circle** (Apple Face-ID style): a square rect rendered
+    /// with `Ellipse`, so the camera mask, the guide stroke, and the tick ring are
+    /// all circular and concentric.
     private func ovalRect(in size: CGSize) -> CGRect {
-        let width = min(size.width - VIDLayout.Size.ovalHorizontalInset, VIDLayout.Size.ovalMaxWidth)
-        let height = width * VIDLayout.Size.ovalAspectRatio
+        let diameter = min(size.width * VIDLayout.Size.captureCircleFactor, VIDLayout.Size.ovalMaxWidth)
         return CGRect(
-            x: (size.width - width) / 2,
-            y: size.height * VIDLayout.Size.ovalVerticalPositionFactor - height / 2,
-            width: width, height: height
+            x: (size.width - diameter) / 2,
+            y: size.height * VIDLayout.Size.ovalVerticalPositionFactor - diameter / 2,
+            width: diameter, height: diameter
         )
     }
 
     private var ovalColor: Color {
+        // Theme-aware, deliberately faint — the ring/glow lead, not a heavy edge.
         switch model.ovalState {
-        case .idle: .white.opacity(VIDLayout.Opacity.ovalIdle)
+        case .idle: theme.textSecondary.opacity(VIDLayout.Opacity.ovalIdle)
         case .adjusting: theme.warning
-        case .active: .white
+        case .active: theme.textSecondary.opacity(VIDLayout.Opacity.subtle)
         case .success: theme.success
         case .error: theme.error
         }
@@ -122,12 +206,16 @@ public struct VIDFaceCaptureView: View {
         VStack(spacing: .zero) {
             HStack {
                 Button(action: model.cancel) {
-                    Image(systemName: VIDIcon.close)
-                        .font(.title)
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.white.opacity(VIDLayout.Opacity.chromeIcon))
+                    Text(VIDStrings.Button.cancel, bundle: .module)
+                        .font(theme.font(.button))
+                        .foregroundStyle(theme.textPrimary)
                 }
                 Spacer()
+                Button { showFaceHelp = true } label: {
+                    Label(VIDStrings.Help.button, systemImage: VIDIcon.help)
+                        .font(theme.font(.button))
+                        .foregroundStyle(theme.primary)
+                }
             }
             .padding(.horizontal, theme.screenPadding)
             .padding(.top, max(safeArea.top, VIDLayout.Spacing.medium))
@@ -150,7 +238,7 @@ public struct VIDFaceCaptureView: View {
             // stale prompts (e.g. "Hold still…") never bleed through.
             if model.showsHUD {
                 VStack(spacing: VIDLayout.Spacing.large) {
-                    if model.challenges.count > 1 {
+                    if model.showsChallengeDots {
                         challengeProgress
                     }
 
@@ -173,11 +261,22 @@ public struct VIDFaceCaptureView: View {
 
                     Text(model.instruction)
                         .font(theme.font(.title))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(theme.textPrimary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, theme.screenPadding)
                         .contentTransition(.opacity)
                         .animation(.easeInOut, value: model.instruction)
+
+                    // Accessibility escape hatch during the head-rotation phase —
+                    // mirrors Face ID's "Accessibility Options": skip the rotation
+                    // and capture from a steady frontal hold instead.
+                    if model.step == .headRotation {
+                        Button(action: model.skipHeadRotation) {
+                            Text(VIDStrings.FaceCapture.accessibilityOptions, bundle: .module)
+                                .font(theme.font(.button))
+                                .foregroundStyle(theme.primary)
+                        }
+                    }
                 }
                 .padding(.bottom, max(safeArea.bottom, VIDLayout.Spacing.large) + VIDLayout.Spacing.hudBottomExtra)
                 .transition(.opacity)
@@ -240,27 +339,74 @@ public struct VIDFaceCaptureView: View {
         }
     }
 
-    private func failureOverlay(_ message: String) -> some View {
+    /// A brief green checkmark held before the flow advances (the success signal
+    /// lands on the element the user is already looking at — the oval turned
+    /// green — then this confirms it).
+    private var successOverlay: some View {
         ZStack {
-            Color.black.opacity(VIDLayout.Opacity.failureScrim).ignoresSafeArea()
-            VStack(spacing: theme.screenPadding) {
-                Image(systemName: VIDIcon.warning)
-                    .font(.largeTitle).foregroundStyle(theme.error)
-                Text(verbatim: message)
-                    .font(theme.font(.title)).foregroundStyle(.white)
-                    .multilineTextAlignment(.center).padding(.horizontal, theme.screenPadding)
-                Button(action: model.retry) {
-                    Text(VIDStrings.Button.tryAgain, bundle: .module)
-                        .font(theme.font(.button)).foregroundStyle(theme.onPrimary)
-                        .frame(maxWidth: .infinity, minHeight: VIDLayout.Size.buttonHeight)
-                        .background(theme.primary, in: RoundedRectangle(cornerRadius: theme.buttonCornerRadius))
-                }
-                Button(action: model.cancel) {
-                    Text(VIDStrings.Button.cancel, bundle: .module).font(theme.font(.button)).foregroundStyle(.white.opacity(VIDLayout.Opacity.mutedOnDark))
-                }
+            Color.black.opacity(VIDLayout.Opacity.successScrim).ignoresSafeArea()
+            ZStack {
+                Circle()
+                    .fill(theme.success)
+                    .frame(width: VIDLayout.Size.successBadge, height: VIDLayout.Size.successBadge)
+                Image(systemName: VIDIcon.success)
+                    .font(.system(size: VIDLayout.IconSize.success, weight: .bold))
+                    .foregroundStyle(theme.onPrimary)
             }
-            .padding(theme.screenPadding)
+            .transition(.scale.combined(with: .opacity))
+            Text(VIDStrings.FaceCapture.allSet, bundle: .module)
+                .font(theme.font(.title))
+                .foregroundStyle(.white)
+                .offset(y: VIDLayout.Size.successBadge)
         }
+        .accessibilityElement()
+        .accessibilityLabel(VIDStrings.FaceCapture.allSet)
+    }
+
+    /// A clean, full-screen themed failure screen (not cramped over the camera):
+    /// a soft error badge, a friendly title, the specific reason, then the actions.
+    private func failureOverlay(_ message: String) -> some View {
+        VStack(spacing: theme.screenPadding) {
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .fill(theme.error.opacity(VIDLayout.Opacity.tint))
+                    .frame(width: VIDLayout.Size.heroCircle, height: VIDLayout.Size.heroCircle)
+                Image(systemName: VIDIcon.faceMismatchBadge)
+                    .font(.system(size: VIDLayout.IconSize.hero))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(theme.error)
+            }
+
+            VStack(spacing: VIDLayout.Spacing.title) {
+                Text(VIDStrings.FaceCapture.failTitle, bundle: .module)
+                    .font(theme.font(.largeTitle))
+                    .foregroundStyle(theme.textPrimary)
+                    .multilineTextAlignment(.center)
+                Text(verbatim: message)
+                    .font(theme.font(.body))
+                    .foregroundStyle(theme.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, theme.screenPadding)
+
+            Spacer()
+
+            Button(action: model.retry) {
+                Text(VIDStrings.Button.tryAgain, bundle: .module)
+                    .font(theme.font(.button)).foregroundStyle(theme.onPrimary)
+                    .frame(maxWidth: .infinity, minHeight: VIDLayout.Size.buttonHeight)
+                    .background(theme.primary, in: RoundedRectangle(cornerRadius: theme.buttonCornerRadius))
+            }
+            Button(action: model.cancel) {
+                Text(VIDStrings.Button.cancel, bundle: .module)
+                    .font(theme.font(.button)).foregroundStyle(theme.textSecondary)
+            }
+        }
+        .padding(theme.screenPadding)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(theme.background.ignoresSafeArea())
     }
 }
 
@@ -270,12 +416,15 @@ extension VIDFaceCaptureView {
     enum OvalState { case idle, adjusting, active, success, error }
 
     enum FaceStep: Equatable {
+        case tutorial
         case positioning
         case challenge(index: Int)
         case transition
+        case headRotation
         case neutralPose
         case capturing
         case processing
+        case success
         case failed(String)
     }
 
@@ -285,7 +434,12 @@ extension VIDFaceCaptureView {
     /// challenges, 1.5s neutral settle, 0.3s capture flash).
     @MainActor
     final class Model: ObservableObject {
-        @Published var step: FaceStep = .positioning
+        // Starts on `.tutorial` so the camera/AR view is never mounted before
+        // `start()` runs on appear and decides the route (showing the tutorial, or
+        // going straight to positioning when the tutorial is disabled). This also
+        // prevents a first-frame race where the AR view reports "unsupported"
+        // before `start()` has a chance to route.
+        @Published var step: FaceStep = .tutorial
         @Published var instruction: LocalizedStringKey = VIDStrings.FaceCapture.positionFace
         @Published var completedCount = 0
         @Published var timeoutProgress: CGFloat = 1
@@ -296,6 +450,12 @@ extension VIDFaceCaptureView {
         @Published var showPulse = false
         @Published var isLowLight = false
         @Published private(set) var multipleFaces = false
+        /// Lit segments for the head-rotation ring (mirrors the session tracker).
+        @Published var ringFilled: [Bool] = []
+
+        /// Set by the view before ``start()``. When the user has Reduce Motion on,
+        /// the head-rotation phase is skipped for a steady frontal hold.
+        var prefersReducedMotion = false
 
         var challenges: [VIDLivenessChallenge] {
             session.challenges
@@ -304,12 +464,41 @@ extension VIDFaceCaptureView {
         /// The live camera HUD is hidden while a full-screen overlay is up.
         var showsHUD: Bool {
             switch step {
-            case .processing, .failed: false
+            case .tutorial, .processing, .success, .failed: false
             default: true
             }
         }
 
+        /// The "step N of M" dots only make sense during the active-challenge
+        /// phase — not during positioning, head rotation, or capture.
+        var showsChallengeDots: Bool {
+            switch step {
+            case .challenge, .transition: challenges.count > 1
+            default: false
+            }
+        }
+
+        /// The soft Siri glow shows whenever the camera is live and framing the face.
+        var showsGlow: Bool {
+            switch step {
+            case .positioning, .challenge, .transition, .headRotation, .neutralPose, .capturing: true
+            default: false
+            }
+        }
+
+        /// Once the head-rotation ring has been filled, keep showing it (fully green)
+        /// through the neutral-pose capture so the user still sees their completed
+        /// progress while looking at the camera.
+        var showsRing: Bool {
+            guard !ringFilled.isEmpty else { return false }
+            return switch step {
+            case .headRotation, .transition, .neutralPose, .capturing: true
+            default: false
+            }
+        }
+
         private let reference: CGImage
+        private let configuration: VIDFaceConfiguration
         private let session: VIDLivenessSession
         private let matcher: VIDFaceMatcher
         private let onComplete: (VIDLivenessOutcome, VIDFaceMatchResult) -> Void
@@ -326,31 +515,74 @@ extension VIDFaceCaptureView {
 
         private let challengeGracePeriod: TimeInterval = VIDLayout.Duration.challengeGrace
 
+        private let debugDesignPreview: Bool
+        private var designTimer: AnyCancellable?
+
         init(reference: CGImage, configuration: VIDFaceConfiguration,
              onComplete: @escaping (VIDLivenessOutcome, VIDFaceMatchResult) -> Void,
-             onCancel: @escaping () -> Void) {
+             onCancel: @escaping () -> Void,
+             debugDesignPreview: Bool = false) {
             self.reference = reference
+            self.configuration = configuration
             session = VIDLivenessSession(configuration: configuration)
             matcher = VIDFaceMatcher(configuration: configuration)
             self.onComplete = onComplete
             onCancelHandler = onCancel
+            self.debugDesignPreview = debugDesignPreview
         }
 
         // MARK: Lifecycle
 
         func start() {
+            #if DEBUG
+                if debugDesignPreview {
+                    startDesignPreview()
+                    return
+                }
+            #endif
+            // Show the coaching tutorial first (if enabled); the camera warms up
+            // behind it. Otherwise go straight into positioning.
+            if configuration.showsTutorial {
+                step = .tutorial
+                return
+            }
+            beginLiveness()
+        }
+
+        #if DEBUG
+            /// Drives the head-rotation ring on a timer (no camera) so the capture
+            /// design can be reviewed in the Simulator.
+            private func startDesignPreview() {
+                step = .headRotation
+                ovalState = .active
+                instruction = VIDStrings.FaceCapture.rotateHead
+                let total = session.headRotation.segmentCount
+                var lit = 0
+                designTimer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+                    .sink { [weak self] _ in
+                        guard let self else { return }
+                        lit = (lit + 1) % (total + 12) // fill, brief pause, loop
+                        ringFilled = (0 ..< total).map { $0 < lit }
+                    }
+            }
+        #endif
+
+        /// Begins the live capture after the tutorial (or immediately when the
+        /// tutorial is disabled).
+        func beginLiveness() {
             startSessionTimer()
             step = .positioning
             ovalState = .idle
             positioningStart = nil
             multipleFaces = false
             instruction = VIDStrings.FaceCapture.positionFace
-            Logger.face.vidDebug("Liveness: started, challenges=\(session.challenges.map(\.rawValue))")
+            Logger.face.vidDebug("Liveness: started, mode=\(configuration.livenessMode.rawValue), challenges=\(session.challenges.map(\.rawValue))")
         }
 
         func stop() {
             challengeTimer?.cancel()
             sessionTimer?.cancel()
+            designTimer?.cancel()
         }
 
         func cancel() {
@@ -365,13 +597,10 @@ extension VIDFaceCaptureView {
             capturedSelfie = nil
             sessionPaused = false
             challengeIcon = nil
+            ringFilled = []
             challengeTimer?.cancel()
-            startSessionTimer()
-            step = .positioning
-            ovalState = .idle
-            positioningStart = nil
-            multipleFaces = false
-            instruction = VIDStrings.FaceCapture.positionFace
+            // Retry skips the tutorial — the user has already seen it.
+            beginLiveness()
             Logger.face.vidDebug("Liveness: retry")
         }
 
@@ -418,6 +647,7 @@ extension VIDFaceCaptureView {
             switch step {
             case .positioning: positioning(frame)
             case let .challenge(index): challengeUpdate(frame, index: index)
+            case .headRotation: headRotationUpdate(frame)
             case .neutralPose: neutralUpdate(frame)
             default: break
             }
@@ -427,14 +657,39 @@ extension VIDFaceCaptureView {
             if positioningStart == nil {
                 positioningStart = Date()
             }
-            // No head-angle guidance: the ARKit yaw/pitch are unreliable here and
-            // false-flag a frontal face ("Turn to face the camera"). The oval frames
-            // the user and the challenges themselves prove head control, so we just
-            // collect anti-spoof samples and advance.
+            updatePositioningCoaching(frame)
+            // No head-angle gate here: the oval frames the user and the phases
+            // themselves prove head control, so we just collect anti-spoof samples
+            // (natural micro-sway) and advance.
             session.recordPositioningSample(yaw: frame.yaw)
             let elapsed = positioningStart.map { Date().timeIntervalSince($0) } ?? 0
             if session.hasPassedMicroMovementCheck || elapsed > VIDLayout.Duration.positioningTimeout {
+                advanceFromPositioning()
+            }
+        }
+
+        /// Distance-only coaching while positioning (too far / too close). The
+        /// thresholds are in raw ARKit metres and should be device-tuned.
+        private func updatePositioningCoaching(_ frame: VIDFaceFrame) {
+            let next: LocalizedStringKey = if frame.distance > VIDLayout.Distance.tooFar {
+                VIDStrings.FaceCapture.moveCloser
+            } else if frame.distance < VIDLayout.Distance.tooClose {
+                VIDStrings.FaceCapture.moveBack
+            } else {
+                VIDStrings.FaceCapture.positionFace
+            }
+            if instruction != next { instruction = next }
+        }
+
+        /// Routes out of positioning into the first phase for the configured mode.
+        private func advanceFromPositioning() {
+            let mode = configuration.livenessMode
+            if mode.usesActiveChallenges {
                 startFirstChallenge()
+            } else if mode.usesHeadRotation {
+                startHeadRotation()
+            } else {
+                startNeutralPose()
             }
         }
 
@@ -478,10 +733,79 @@ extension VIDFaceCaptureView {
                     step = .challenge(index: index + 1)
                     startChallengeTimer()
                 } else {
+                    // Active challenges done — the ring phase follows in `.both`.
                     challengeIcon = nil
-                    startNeutralPose()
+                    if configuration.livenessMode.usesHeadRotation {
+                        startHeadRotation()
+                    } else {
+                        startNeutralPose()
+                    }
                 }
             }
+        }
+
+        // MARK: Head-rotation ring
+
+        private func startHeadRotation() {
+            // Reduce Motion (or an unsupported preference): skip the rotation and
+            // capture from a steady frontal hold, like Face ID's Accessibility
+            // Options.
+            guard !prefersReducedMotion else { return startNeutralPose() }
+            session.headRotation.reset()
+            ringFilled = session.headRotation.filledSegments
+            step = .headRotation
+            ovalState = .active
+            instruction = VIDStrings.FaceCapture.rotateHead
+            impact(.light)
+            startHeadRotationFallback()
+            Logger.face.vidDebug("Liveness: head-rotation phase (\(session.headRotation.segmentCount) segments)")
+        }
+
+        private func headRotationUpdate(_ frame: VIDFaceFrame) {
+            if session.headRotation.record(directionX: frame.directionX, directionY: frame.directionY) {
+                ringFilled = session.headRotation.filledSegments
+                impact(.light) // per-arc haptic tick as new ticks latch
+                if session.headRotation.progress > 0.5, instruction != VIDStrings.FaceCapture.keepGoing {
+                    instruction = VIDStrings.FaceCapture.keepGoing
+                }
+            }
+            if session.headRotation.isComplete {
+                finishHeadRotation()
+            }
+        }
+
+        private func finishHeadRotation() {
+            guard step == .headRotation else { return }
+            step = .transition
+            ovalState = .success
+            // Fill the whole ring green and hold it, so the user sees completion
+            // before the prompt changes to "look at the camera".
+            ringFilled = Array(repeating: true, count: session.headRotation.segmentCount)
+            showPulse = true
+            notify(.success)
+            DispatchQueue.main.asyncAfter(deadline: .now() + VIDLayout.Duration.ringCompletePause) { [weak self] in
+                guard let self else { return }
+                showPulse = false
+                startNeutralPose()
+            }
+        }
+
+        /// If the ring is never completed (e.g. the user can't rotate far enough),
+        /// fall through to a steady-hold capture so no one is ever stuck.
+        private func startHeadRotationFallback() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + VIDLayout.Duration.headRotationTimeout) { [weak self] in
+                guard let self, step == .headRotation else { return }
+                Logger.face.vidDebug("Liveness: head-rotation fallback → capture")
+                startNeutralPose()
+            }
+        }
+
+        /// Accessibility escape hatch: abandon the ring and capture from a steady
+        /// frontal hold instead.
+        func skipHeadRotation() {
+            guard step == .headRotation else { return }
+            Logger.face.vidDebug("Liveness: head-rotation skipped by user")
+            startNeutralPose()
         }
 
         // MARK: Neutral pose → capture
@@ -534,13 +858,17 @@ extension VIDFaceCaptureView {
                     let result = try matcher.match(reference: reference, live: selfie)
                     if result.isMatch {
                         ovalState = .success
+                        step = .success
                         notify(.success)
                         let liveness = VIDLivenessOutcome(
                             passed: true,
                             challengesCompleted: session.completedChallengeNames,
                             capturedImageData: selfie.vidJPEGData()
                         )
-                        onComplete(liveness, result)
+                        // Hold the green checkmark briefly, then hand back.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + VIDLayout.Duration.successDwell) { [weak self] in
+                            self?.onComplete(liveness, result)
+                        }
                     } else {
                         fail(VIDStrings.FaceCapture.Failure.faceMismatch)
                     }

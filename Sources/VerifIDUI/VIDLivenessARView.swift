@@ -9,6 +9,7 @@
 
 import ARKit
 import CoreImage
+import simd
 import SwiftUI
 import VerifIDCore
 import VerifIDFace
@@ -71,8 +72,12 @@ final class VIDLivenessARController: UIViewController {
         sceneView.session.delegate = tracker
         sceneView.session.delegateQueue = sessionQueue
         sceneView.automaticallyUpdatesLighting = true
-        // Mirror horizontally for a natural selfie preview.
-        sceneView.layer.transform = CATransform3DMakeScale(-1, 1, 1)
+        // NOTE: do NOT mirror the layer. An ARKit face-tracking session already
+        // presents the camera image mirrored (Apple: "ARKit views running a
+        // face-tracking session mirror the camera image"), so the preview is
+        // already a natural selfie mirror. Adding a CATransform3D scale here would
+        // double-mirror it (the "face looks flipped" bug) and also flip any
+        // SceneKit overlays and desync hit-testing.
         tracker.sceneView = sceneView
         view.addSubview(sceneView)
     }
@@ -163,7 +168,8 @@ final class FaceTracker: NSObject, ARSCNViewDelegate, ARSessionDelegate, @unchec
         let faces = frame.anchors.compactMap { $0 as? ARFaceAnchor }.filter(\.isTracked)
         let count = faces.count
         let primary = primaryFace(among: faces)
-        let faceFrame = primary.map { Self.faceFrame(from: $0) }
+        let cameraTransform = frame.camera.transform
+        let faceFrame = primary.map { Self.faceFrame(from: $0, camera: cameraTransform) }
         let (onFaceCount, onFrame, onFaceLost) = (onFaceCount, onFrame, onFaceLost)
         DispatchQueue.main.async {
             onFaceCount?(count)
@@ -182,21 +188,37 @@ final class FaceTracker: NSObject, ARSCNViewDelegate, ARSessionDelegate, @unchec
 
     /// Reduces an `ARFaceAnchor` to the plain values liveness needs. Blend-shape
     /// names are ARKit's (the mirror correction lives in ``VIDLivenessSession``).
-    private static func faceFrame(from anchor: ARFaceAnchor) -> VIDFaceFrame {
+    private static func faceFrame(from anchor: ARFaceAnchor, camera: simd_float4x4) -> VIDFaceFrame {
         let shapes = anchor.blendShapes
         func value(_ key: ARFaceAnchor.BlendShapeLocation) -> Float {
             shapes[key]?.floatValue ?? 0
         }
+        // World-space forward for the challenge yaw/pitch. `transform.columns.2` is
+        // the face's +z (forward) basis vector. Yaw from x/z (scale-invariant),
+        // pitch from y (normalized, clamped for asin). Per ARKit's documented axes
+        // (+x = the face's own left), +yaw = the user turned to their own left.
         let t = anchor.transform
+        let fx = t.columns.2.x, fy = t.columns.2.y, fz = t.columns.2.z
+        let length = (fx * fx + fy * fy + fz * fz).squareRoot()
+        let normalizedY = length > 0 ? fy / length : 0
+
+        // Camera-RELATIVE forward for the head-rotation ring: this removes device
+        // tilt (only genuine head motion counts), and we mirror X to match the
+        // mirrored selfie preview so the lit tick follows the nose on screen.
+        let relative = simd_mul(simd_inverse(camera), t)
+        let relForward = relative.columns.2
+
         return VIDFaceFrame(
             eyeBlinkLeft: value(.eyeBlinkLeft),
             eyeBlinkRight: value(.eyeBlinkRight),
             smileLeft: value(.mouthSmileLeft),
             smileRight: value(.mouthSmileRight),
             jawOpen: value(.jawOpen),
-            yaw: atan2(t.columns.2.x, t.columns.2.z),
-            pitch: asin(-t.columns.2.x),
-            distance: -t.columns.3.z
+            yaw: atan2(fx, fz),
+            pitch: asin(max(-1, min(1, normalizedY))),
+            distance: -t.columns.3.z,
+            directionX: -relForward.x,
+            directionY: relForward.y
         )
     }
 
