@@ -82,6 +82,13 @@ public struct VIDVerificationFlowView: View {
     @State private var selectedDocumentKind: VIDVerificationStep.DocumentKind?
     /// A detected document-type problem, shown on the `.documentIssue` screen.
     @State private var documentIssue: DocumentIssue?
+    /// Whether the NFC "tips for reading the chip" help alert is shown.
+    @State private var showNFCHelp = false
+    #if DEBUG
+        /// DEBUG-only: overrides the liveness path from the face-intro screen so
+        /// both paths can be exercised after a real scan. Not shipping API.
+        @State private var debugLivenessMode: VIDLivenessMode = .headRotation
+    #endif
 
     public init(
         configuration: VIDConfiguration = .default,
@@ -190,7 +197,7 @@ public struct VIDVerificationFlowView: View {
             }
             .fullScreenCover(isPresented: $isCapturingFace) {
                 if let reference = referenceFace {
-                    VIDFaceCaptureView(reference: reference, configuration: configuration.face) { liveness, match in
+                    VIDFaceCaptureView(reference: reference, configuration: faceConfiguration) { liveness, match in
                         self.liveness = liveness
                         faceMatch = match
                         isCapturingFace = false
@@ -223,6 +230,19 @@ public struct VIDVerificationFlowView: View {
     /// to match against, and a face model is bundled.
     private var shouldRunFaceMatch: Bool {
         configuration.steps.contains(.faceMatch) && referenceFace != nil
+    }
+
+    /// The face configuration handed to the capture view. In DEBUG the face-intro
+    /// picker can override the liveness path so both can be tested from the real
+    /// flow; release builds always use the integrator's configuration verbatim.
+    private var faceConfiguration: VIDFaceConfiguration {
+        #if DEBUG
+            var config = configuration.face
+            config.livenessMode = debugLivenessMode
+            return config
+        #else
+            configuration.face
+        #endif
     }
 
     @ViewBuilder
@@ -495,6 +515,10 @@ public struct VIDVerificationFlowView: View {
     /// pattern every top-tier KYC flow uses instead of raising the OS prompt cold.
     private var chipGuidance: some View {
         VStack(spacing: theme.screenPadding) {
+            HStack {
+                Spacer()
+                helpButton
+            }
             Spacer()
 
             screenHeader(VIDStrings.ChipGuidance.title, VIDStrings.ChipGuidance.subtitle)
@@ -527,6 +551,7 @@ public struct VIDVerificationFlowView: View {
             secondaryButton(titleKey: VIDStrings.Button.cancel) { onCompletion(.cancelled) }
         }
         .padding(theme.screenPadding)
+        .vidNFCHelpAlert(isPresented: $showNFCHelp)
     }
 
     private func guidanceRow(_ systemImage: String, _ textKey: LocalizedStringKey) -> some View {
@@ -544,6 +569,10 @@ public struct VIDVerificationFlowView: View {
 
     private var readingChip: some View {
         VStack(spacing: theme.screenPadding) {
+            HStack {
+                Spacer()
+                helpButton
+            }
             Spacer()
             ProgressView()
                 .controlSize(.large)
@@ -558,6 +587,16 @@ public struct VIDVerificationFlowView: View {
             Spacer()
         }
         .padding(theme.screenPadding)
+        .vidNFCHelpAlert(isPresented: $showNFCHelp)
+    }
+
+    /// A top-bar help button that opens the NFC "tips for reading the chip" alert.
+    private var helpButton: some View {
+        Button { showNFCHelp = true } label: {
+            Label(VIDStrings.Help.button, systemImage: VIDIcon.help)
+                .font(theme.font(.body))
+                .foregroundStyle(theme.primary)
+        }
     }
 
     // MARK: Face intro
@@ -586,6 +625,20 @@ public struct VIDVerificationFlowView: View {
             secondaryButton(titleKey: VIDStrings.Button.skip) { step = .result }
 
             #if DEBUG
+                // Developer testing: pick which liveness path the capture runs, so
+                // both can be exercised after a real scan on device. Compiled out of
+                // release builds; integrators set this via `VIDFaceConfiguration`.
+                Picker(selection: $debugLivenessMode) {
+                    Text(verbatim: "Head rotation (ring)").tag(VIDLivenessMode.headRotation)
+                    Text(verbatim: "Random prompts").tag(VIDLivenessMode.activeChallenges)
+                    Text(verbatim: "Both").tag(VIDLivenessMode.both)
+                    Text(verbatim: "Passive").tag(VIDLivenessMode.passive)
+                } label: {
+                    Text(verbatim: "Liveness path (debug)")
+                }
+                .font(theme.font(.caption))
+                .tint(theme.primary)
+
                 // Developer testing: replace the reference (document) photo with a
                 // library image, so the live face scan matches against THAT instead of
                 // the chip photo. Compiled out of release builds.
@@ -676,24 +729,50 @@ public struct VIDVerificationFlowView: View {
                 }
             } else {
                 Spacer()
-                Image(systemName: VIDIcon.warning)
-                    .font(.largeTitle)
-                    .foregroundStyle(theme.error)
-                Text(VIDStrings.Result.couldNotRead, bundle: .module)
-                    .font(theme.font(.title))
-                    .foregroundStyle(theme.textPrimary)
-                if let errorMessage {
-                    Text(verbatim: errorMessage)
-                        .font(theme.font(.body))
-                        .foregroundStyle(theme.textSecondary)
-                        .multilineTextAlignment(.center)
+                ZStack {
+                    Circle()
+                        .fill(theme.error.opacity(VIDLayout.Opacity.tint))
+                        .frame(width: VIDLayout.Size.heroCircle, height: VIDLayout.Size.heroCircle)
+                    Image(systemName: VIDIcon.warning)
+                        .font(.system(size: VIDLayout.IconSize.hero))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(theme.error)
                 }
+                VStack(spacing: VIDLayout.Spacing.title) {
+                    Text(VIDStrings.Result.couldNotRead, bundle: .module)
+                        .font(theme.font(.largeTitle))
+                        .foregroundStyle(theme.textPrimary)
+                        .multilineTextAlignment(.center)
+                    if let errorMessage {
+                        Text(verbatim: errorMessage)
+                            .font(theme.font(.body))
+                            .foregroundStyle(theme.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                Button { showNFCHelp = true } label: {
+                    Label(VIDStrings.Help.button, systemImage: VIDIcon.help)
+                        .font(theme.font(.body))
+                        .foregroundStyle(theme.primary)
+                }
+                .padding(.top, VIDLayout.Spacing.small)
                 Spacer()
-                primaryButton(titleKey: VIDStrings.Button.tryAgain) { step = .intro }
+                // Retry just the chip read using the already-scanned MRZ — no need to
+                // re-scan the document. Only fall back to the start if we somehow
+                // have no MRZ to reuse.
+                primaryButton(titleKey: VIDStrings.Button.tryAgain) {
+                    if let scannedMRZ {
+                        errorMessage = nil
+                        startChipRead(mrz: scannedMRZ)
+                    } else {
+                        step = .intro
+                    }
+                }
                 secondaryButton(titleKey: VIDStrings.Button.cancel) { onCompletion(.cancelled) }
             }
         }
         .padding(theme.screenPadding)
+        .vidNFCHelpAlert(isPresented: $showNFCHelp)
     }
 
     /// Whether the scanned MRZ's access-controlled fields match the chip's DG1.
