@@ -77,16 +77,20 @@ struct LivenessLogicTests {
         #expect(!VIDLivenessSession.evaluate(.openMouth, frame: .init(jawOpen: 0.2)))
     }
 
-    @Test func blinkLeftMapsToMirroredEye() {
-        // The user's left eye is ARKit's eyeBlinkRight (mirrored front camera).
+    @Test func blinkChallengesUseTheMirroredEye() {
+        // Mirrored selfie preview: "blink your left eye" = the eye on the left of
+        // the mirror = ARKit eyeBlinkRight (device-confirmed).
         #expect(VIDLivenessSession.evaluate(.blinkLeft, frame: .init(eyeBlinkRight: 0.9)))
         #expect(!VIDLivenessSession.evaluate(.blinkLeft, frame: .init(eyeBlinkLeft: 0.9)))
+        #expect(VIDLivenessSession.evaluate(.blinkRight, frame: .init(eyeBlinkLeft: 0.9)))
+        #expect(!VIDLivenessSession.evaluate(.blinkRight, frame: .init(eyeBlinkRight: 0.9)))
     }
 
-    @Test func headTurnDirectionsAreSigned() {
-        #expect(VIDLivenessSession.evaluate(.turnRight, frame: .init(yaw: 0.5)))
+    @Test func headTurnDirectionsAreMirrored() {
+        // On the mirrored preview, "turn left" reads as −yaw (device-confirmed).
         #expect(VIDLivenessSession.evaluate(.turnLeft, frame: .init(yaw: -0.5)))
-        #expect(!VIDLivenessSession.evaluate(.turnRight, frame: .init(yaw: -0.5)))
+        #expect(VIDLivenessSession.evaluate(.turnRight, frame: .init(yaw: 0.5)))
+        #expect(!VIDLivenessSession.evaluate(.turnLeft, frame: .init(yaw: 0.5)))
     }
 
     @Test func microMovementRejectsStaticPhotoAcceptsLiveSway() {
@@ -109,5 +113,89 @@ struct LivenessLogicTests {
         #expect(VIDLivenessSession.isNeutralPose(frame: .init(yaw: 0.05, pitch: 0.05)))
         #expect(!VIDLivenessSession.isNeutralPose(frame: .init(eyeBlinkLeft: 0.9)))
         #expect(!VIDLivenessSession.isNeutralPose(frame: .init(yaw: 0.5)))
+    }
+}
+
+struct LivenessModeTests {
+    @Test func headRotationIsTheDefault() {
+        #expect(VIDFaceConfiguration().livenessMode == .headRotation)
+        #expect(VIDFaceConfiguration().showsTutorial == true)
+    }
+
+    @Test func modeCapabilityFlags() {
+        #expect(VIDLivenessMode.headRotation.usesHeadRotation)
+        #expect(!VIDLivenessMode.headRotation.usesActiveChallenges)
+        #expect(VIDLivenessMode.activeChallenges.usesActiveChallenges)
+        #expect(!VIDLivenessMode.activeChallenges.usesHeadRotation)
+        #expect(VIDLivenessMode.both.usesActiveChallenges && VIDLivenessMode.both.usesHeadRotation)
+        #expect(!VIDLivenessMode.passive.usesActiveChallenges && !VIDLivenessMode.passive.usesHeadRotation)
+    }
+}
+
+struct HeadRotationTrackerTests {
+    /// A tracker with smoothing disabled (`alpha: 1`) for deterministic
+    /// single-frame assertions.
+    private func tracker(segments: Int = 36, cluster: Int = 0, coverage: Float = 0.85) -> VIDHeadRotationTracker {
+        VIDHeadRotationTracker(
+            segmentCount: segments, deadZone: 0.05, fillMagnitude: 0.15,
+            clusterHalfWidth: cluster, requiredCoverage: coverage, smoothingAlpha: 1
+        )
+    }
+
+    @Test func frontalFramesDoNotLatch() {
+        let t = tracker()
+        #expect(t.record(directionX: 0.01, directionY: 0) == false) // inside dead zone
+        #expect(t.filledCount == 0)
+        #expect(!t.isComplete)
+    }
+
+    @Test func rotatingFillsTheRing() {
+        let t = tracker(segments: 12, cluster: 0, coverage: 1)
+        // Sweep the pointing direction a full circle at each tick's centre.
+        for step in 0 ..< 12 {
+            let angle = (Float(step) + 0.5) / 12 * 2 * .pi
+            t.record(directionX: 0.3 * cos(angle), directionY: -0.3 * sin(angle))
+        }
+        #expect(t.filledCount == 12)
+        #expect(t.isComplete)
+    }
+
+    @Test func clusterLightsNeighbouringTicks() {
+        let t = tracker(segments: 36, cluster: 2, coverage: 1)
+        #expect(t.record(directionX: 0.3, directionY: 0) == true)
+        #expect(t.filledCount == 5) // centre ± 2
+    }
+
+    @Test func latchingKeepsTicksLitAndDedupes() {
+        let t = tracker(segments: 12, cluster: 0)
+        #expect(t.record(directionX: 0.3, directionY: 0) == true)
+        #expect(t.record(directionX: 0.3, directionY: 0) == false) // already lit
+        #expect(t.filledCount == 1)
+    }
+
+    @Test func completesAtQuorumNotFullSweep() {
+        let t = tracker(segments: 10, cluster: 0, coverage: 0.7)
+        for step in 0 ..< 7 {
+            let angle = (Float(step) + 0.5) / 10 * 2 * .pi
+            t.record(directionX: 0.3 * cos(angle), directionY: -0.3 * sin(angle))
+        }
+        #expect(t.filledCount == 7)
+        #expect(t.isComplete) // 0.7 coverage reached without the last 3
+    }
+
+    @Test func smoothingDampsASingleFrame() {
+        // Default smoothing (alpha 0.3): one frame of a large direction is damped
+        // below the fill threshold (0.3 × 0.3 = 0.09 < 0.20), so it can't latch
+        // instantly — this is what stops jitter from flickering ticks.
+        let t = VIDHeadRotationTracker()
+        #expect(t.record(directionX: 0.3, directionY: 0) == false)
+    }
+
+    @Test func resetClearsProgress() {
+        let t = tracker(segments: 12, cluster: 0)
+        t.record(directionX: 0.3, directionY: 0)
+        #expect(t.filledCount > 0)
+        t.reset()
+        #expect(t.filledCount == 0)
     }
 }
