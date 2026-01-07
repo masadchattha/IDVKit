@@ -188,6 +188,12 @@ namespaces per UI module (see `VerifIDUI/VIDLayout.swift`, `VIDStrings.swift`,
   `LocalizedStringKey` isn't `Sendable`, these constants are
   `nonisolated(unsafe)` (compile-time literals, never mutated — safe).
 - **`VIDIcon`** — every SF-Symbol name, grouped (`Document`, `Challenge`, …).
+- **`VIDColor`** — the few **fixed, non-themeable** colours (the Face-ID-style
+  green/gray ring ticks, the decorative glow palette). These are deliberately
+  system values rather than theme tokens so the capture matches the reference,
+  and they are picked to hold contrast on **both** the light and dark capture
+  backgrounds. Anything an integrator should be able to restyle belongs on
+  `VIDTheme`, not here — keep this namespace small.
 
 Rules:
 - **Themeable vs fixed.** Anything an integrator should be able to restyle
