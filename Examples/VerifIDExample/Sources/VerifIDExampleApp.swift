@@ -38,6 +38,13 @@ struct ContentView: View {
     @State private var chipFace: UIImage?
     @State private var showFaceCapture = false
     @State private var faceOutput = ""
+    #if DEBUG
+        // Design-review only: lets us exercise both liveness paths in the example.
+        // In a real integration the developer picks this once via
+        // `VIDFaceConfiguration(livenessMode:)`.
+        @State private var debugLivenessMode: VIDLivenessMode = .headRotation
+        @State private var showDesignPreview = false
+    #endif
 
     var body: some View {
         NavigationStack {
@@ -89,6 +96,20 @@ struct ContentView: View {
                     if chipFace != nil {
                         Button("Match face to chip photo") { showFaceCapture = true }
                     }
+                    #if DEBUG
+                        // Debug-only: choose which liveness path to preview and run
+                        // it without needing a real chip read (device required for
+                        // the TrueDepth camera itself). In production the developer
+                        // sets this once via `VIDFaceConfiguration(livenessMode:)`.
+                        Picker("Liveness path", selection: $debugLivenessMode) {
+                            Text("Head rotation (ring)").tag(VIDLivenessMode.headRotation)
+                            Text("Random prompts").tag(VIDLivenessMode.activeChallenges)
+                            Text("Both").tag(VIDLivenessMode.both)
+                            Text("Passive").tag(VIDLivenessMode.passive)
+                        }
+                        Button("Preview liveness path") { showFaceCapture = true }
+                        Button("Preview capture design (no camera)") { showDesignPreview = true }
+                    #endif
                     if !faceOutput.isEmpty {
                         Text(faceOutput)
                             .font(.footnote.monospaced())
@@ -135,6 +156,28 @@ struct ContentView: View {
                         debugStartAt: ProcessInfo.processInfo.environment["VID_DEBUG_STEP"] ?? "intro"
                     ) { _ in }
                 }
+                // Design-review harness for the face capture: `SIMCTL_CHILD_VID_DEBUG_FACE=1
+                // xcrun simctl launch …` opens VIDFaceCaptureView against a placeholder
+                // reference so the pre-liveness tutorial can be reviewed in the Simulator
+                // (the AR camera itself needs a device).
+                .fullScreenCover(isPresented: .constant(
+                    ProcessInfo.processInfo.environment["VID_DEBUG_FACE"] != nil
+                )) {
+                    // `SIMCTL_CHILD_VID_DEBUG_FACE=design` renders the capture design
+                    // with a placeholder camera + auto-filling ring (no TrueDepth
+                    // needed). `=prompts|rotation|both|passive` picks the liveness path.
+                    let raw = ProcessInfo.processInfo.environment["VID_DEBUG_FACE"]
+                    if let placeholder = Self.debugPlaceholderFace {
+                        if raw == "design" {
+                            VIDFaceCaptureView(designPreview: placeholder)
+                        } else {
+                            VIDFaceCaptureView(
+                                reference: placeholder,
+                                configuration: VIDFaceConfiguration(livenessMode: Self.debugMode(raw))
+                            ) { _, _ in } onCancel: {}
+                        }
+                    }
+                }
             #endif
             .fullScreenCover(isPresented: $showScanner) {
                 VIDMRZScannerView { mrz in
@@ -148,9 +191,18 @@ struct ContentView: View {
                     showScanner = false
                 }
             }
+            #if DEBUG
+                .fullScreenCover(isPresented: $showDesignPreview) {
+                    if let placeholder = Self.debugPlaceholderFace {
+                        VIDFaceCaptureView(designPreview: placeholder, configuration: faceConfiguration) {
+                            showDesignPreview = false
+                        }
+                    }
+                }
+            #endif
             .fullScreenCover(isPresented: $showFaceCapture) {
-                if let reference = chipFace?.cgImage {
-                    VIDFaceCaptureView(reference: reference) { liveness, match in
+                if let reference = faceCaptureReference {
+                    VIDFaceCaptureView(reference: reference, configuration: faceConfiguration) { liveness, match in
                         faceOutput = """
                         Liveness: \(liveness.passed ? "passed" : "failed") (\(liveness.challengesCompleted.joined(separator: ", ")))
                         Face match: \(match.isMatch ? "✓ match" : "✗ no match") · similarity \(String(format: "%.2f", match.similarity))
@@ -163,6 +215,56 @@ struct ContentView: View {
             }
         }
     }
+
+    /// The reference face for the standalone face-capture demo — the chip
+    /// portrait when available, else (in DEBUG) a placeholder so the liveness path
+    /// can be previewed without a chip read.
+    private var faceCaptureReference: CGImage? {
+        if let reference = chipFace?.cgImage { return reference }
+        #if DEBUG
+            return Self.debugPlaceholderFace
+        #else
+            return nil
+        #endif
+    }
+
+    /// Face configuration for the standalone demo. In DEBUG the liveness path is
+    /// driven by the on-screen picker; in a real integration the developer sets
+    /// `livenessMode` once here.
+    private var faceConfiguration: VIDFaceConfiguration {
+        #if DEBUG
+            VIDFaceConfiguration(livenessMode: debugLivenessMode, allowsDebugPhotoMatch: true)
+        #else
+            VIDFaceConfiguration()
+        #endif
+    }
+
+    #if DEBUG
+        /// Maps the `VID_DEBUG_FACE` env value to a liveness mode for the harness.
+        static func debugMode(_ raw: String?) -> VIDLivenessMode {
+            switch raw {
+            case "prompts": .activeChallenges
+            case "both": .both
+            case "passive": .passive
+            default: .headRotation
+            }
+        }
+
+        /// A solid placeholder used only to instantiate `VIDFaceCaptureView` in the
+        /// Simulator design-review harness — the reference is consumed at match
+        /// time, which needs a physical device anyway.
+        /// A solid placeholder square, or `nil` if the context can't be created —
+        /// optional so the debug harness never force-unwraps (call sites `if let`).
+        static var debugPlaceholderFace: CGImage? {
+            guard let context = CGContext(
+                data: nil, width: 112, height: 112, bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return nil }
+            context.setFillColor(CGColor(red: 0.42, green: 0.39, blue: 1, alpha: 1))
+            context.fill(CGRect(x: 0, y: 0, width: 112, height: 112))
+            return context.makeImage()
+        }
+    #endif
 
     /// The drop-in flow's configuration, wiring in the bundled CSCA trust store
     /// so chain-of-trust runs. Without this the flow defaults to `.integrityOnly`
