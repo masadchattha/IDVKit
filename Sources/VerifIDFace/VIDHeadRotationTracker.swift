@@ -66,10 +66,18 @@ package final class VIDHeadRotationTracker {
     }
 
     /// Which ticks are currently lit (parallel to the drawn ticks).
-    package var filledSegments: [Bool] { filled }
+    package var filledSegments: [Bool] {
+        filled
+    }
 
     /// Number of ticks lit so far.
-    package var filledCount: Int { filled.lazy.filter { $0 }.count }
+    package var filledCount: Int {
+        var count = 0
+        for isLit in filled where isLit {
+            count += 1
+        }
+        return count
+    }
 
     /// Fill fraction, 0…1.
     package var progress: Float {
@@ -120,7 +128,9 @@ package final class VIDHeadRotationTracker {
     /// negates y to match a top-is-up ring where tick indices go clockwise on screen.
     static func segment(x: Float, y: Float, count: Int) -> Int {
         var angle = atan2(-y, x) // screen y grows downward; negate so +y = up = top
-        if angle < 0 { angle += 2 * .pi }
+        if angle < 0 {
+            angle += 2 * .pi
+        }
         let index = Int(angle / (2 * .pi) * Float(count))
         return min(max(index, 0), count - 1)
     }

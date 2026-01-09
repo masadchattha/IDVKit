@@ -28,11 +28,5 @@ enum VIDColor {
 
     /// The rotating halo palette for ``VIDSiriGlow`` — decorative and fixed, so it
     /// lives here with the other non-themeable capture colours.
-    static let glowPalette: [Color] = [
-        .purple,
-        .blue,
-        .cyan,
-        Color(red: 0.42, green: 0.39, blue: 1.0),
-        .purple,
-    ]
+    static let glowPalette: [Color] = [.purple, .blue, .cyan, Color(red: 0.42, green: 0.39, blue: 1.0), .purple]
 }

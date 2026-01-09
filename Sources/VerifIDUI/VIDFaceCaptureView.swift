@@ -133,7 +133,6 @@ public struct VIDFaceCaptureView: View {
 
     /// The live camera (or a placeholder in the Simulator design-preview) shown
     /// ONLY inside the circle, on the black background — Apple's framing.
-    @ViewBuilder
     private func cameraCircle(_ oval: CGRect) -> some View {
         Group {
             #if DEBUG
@@ -678,7 +677,9 @@ extension VIDFaceCaptureView {
             } else {
                 VIDStrings.FaceCapture.positionFace
             }
-            if instruction != next { instruction = next }
+            if instruction != next {
+                instruction = next
+            }
         }
 
         /// Routes out of positioning into the first phase for the configured mode.
