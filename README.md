@@ -59,23 +59,54 @@ Commercial identity-verification SDKs charge per verification and upload your us
 | Active / Chip auth (anti-clone) | ✅ | ⚠️ partial | **✅** |
 | MRZ camera scan | ✅ | ✗ | **✅** |
 | Face match + liveness | ✅ | ✗ | **✅** |
+| JPEG2000 chip-photo decode (DG2) | ✅ | ⚠️ historically weak | **✅ OpenJPEG 2.5.4, vendored** |
 | Source | Closed | Open | **Open — audit it** |
 
 ## Features
 
-- 🛂 **NFC document-chip reading (eMRTD / ICAO 9303) — from scratch, no third-party NFC library** — passport (TD3), national **ID card** and **residence permit** (TD1/TD2); layout auto-detected. BER-TLV, ISO 7816-4 APDUs, DG parsing, and **both access protocols**:
-  - **BAC** (3DES) — validated byte-for-byte against the ICAO Doc 9303 **Appendix D** worked example
-  - **PACE** (ECDH Generic Mapping, AES) — including hand-written brainpool/NIST elliptic-curve math (Apple's crypto can't do brainpool), validated against the **Appendix G** worked example
-  - `.automatic` mode prefers PACE, falls back to BAC
-- ✅ **Passive authentication, split honestly** — **data integrity** (every DG hash matches the SOD, and the SOD signature is valid — no trust store needed) and **chain of trust** (the Document Signer chains to a CSCA you supply) are reported **separately** (`dataIntegrity` / `chainOfTrust`), so an app without a CSCA store still learns whether the data is intact. Built on Apple's `swift-certificates` / `swift-asn1`, no networking.
-- 🛡 **Active / Chip Authentication (anti-clone)** — proves the physical chip is the original, not a copy (RSA ISO 9796-2 recovery + brainpool/NIST ECDSA).
-- 🔍 **MRZ camera scan** — Apple Vision OCR, ICAO 9303 check-digit validation on every frame, no Tesseract.
-- 🖼 **JPEG2000 decoding** — OpenJPEG 2.5.4 compiled from vendored source; device, simulator and Catalyst.
-- 🙂 **Face match** — MobileFaceNet CoreML, ArcFace 5-point alignment, cosine similarity with a configurable threshold, returning the score (never a bare pass/fail).
-- 👁 **Active liveness** — ARKit blend-shape challenges (blink / smile / open mouth / head turn), micro-movement anti-spoofing, multiple-face rejection.
-- 🎨 **Drop-in SwiftUI flow** — themeable (`IDVTheme`), brandable with your app icon and name (`IDVBrandingConfiguration`), customizable Apple NFC-sheet text — or go fully headless.
-- 🧩 **Modular** — take the whole flow, or one brick (NFC / MRZ / face) — each module stands alone.
-- 🔒 **Zero networking code in the package** — grep it; the privacy promise is auditable.
+#### 🛂 &nbsp;NFC document-chip reading — from scratch, no third-party NFC library
+
+Passport (TD3), national **ID card** and **residence permit** (TD1/TD2); the layout is auto-detected. BER-TLV, ISO 7816-4 APDUs, data-group parsing, and **both access protocols**:
+
+- **BAC** (3DES) — validated byte-for-byte against the ICAO Doc 9303 **Appendix D** worked example
+- **PACE** (ECDH Generic Mapping, AES) — hand-written brainpool/NIST elliptic-curve math (Apple's crypto can't do brainpool), validated against the **Appendix G** worked example
+- `.automatic` mode prefers PACE and falls back to BAC
+
+#### ✅ &nbsp;Passive authentication, split honestly
+
+**Data integrity** (every DG hash matches the SOD, and the SOD signature is valid — no trust store needed) and **chain of trust** (the Document Signer chains to a CSCA you supply) are reported **separately** (`dataIntegrity` / `chainOfTrust`) — so an app without a CSCA store still learns whether the data is intact. Built on Apple's `swift-certificates` / `swift-asn1`, no networking.
+
+#### 🛡 &nbsp;Active / Chip Authentication (anti-clone)
+
+Proves the physical chip is the original, not a copy (RSA ISO 9796-2 recovery + brainpool/NIST ECDSA).
+
+#### 🔍 &nbsp;MRZ camera scan
+
+Apple Vision OCR, ICAO 9303 check-digit validation on every frame — no Tesseract.
+
+#### 🖼 &nbsp;JPEG2000 decoding
+
+OpenJPEG 2.5.4 compiled from vendored source — device, simulator and Catalyst. (The chip portrait in DG2 is JPEG2000; most readers handle it poorly.)
+
+#### 🙂 &nbsp;Face match
+
+MobileFaceNet CoreML, ArcFace 5-point alignment, cosine similarity with a configurable threshold — returns the score, never a bare pass/fail.
+
+#### 👁 &nbsp;Active liveness
+
+ARKit blend-shape challenges (blink / smile / open mouth / head turn), micro-movement anti-spoofing, and multiple-face rejection.
+
+#### 🎨 &nbsp;Drop-in SwiftUI flow
+
+Themeable (`IDVTheme`), brandable with your app icon and name (`IDVBrandingConfiguration`), customizable Apple NFC-sheet text — or go fully headless.
+
+#### 🧩 &nbsp;Modular
+
+Take the whole flow, or one brick (NFC / MRZ / face) — each module stands alone.
+
+#### 🔒 &nbsp;Zero networking code in the package
+
+Grep it — the privacy promise is auditable.
 
 ## Which module do I need?
 
@@ -99,10 +130,16 @@ Take the umbrella for everything, or import just the brick you need — each mod
 
 ## See it in action
 
-| | | | |
-|:---:|:---:|:---:|:---:|
-| <img src="Assets/readme/shot-mrz.png" width="200"> | <img src="Assets/readme/shot-nfc.png" width="200"> | <img src="Assets/readme/shot-authentic.png" width="200"> | <img src="Assets/readme/shot-face.png" width="200"> |
-| MRZ scan | NFC chip read | Chip authentic ✓ | Face + liveness |
+The whole flow, real screens:
+
+| | | |
+|:---:|:---:|:---:|
+| <img src="Assets/readme/sim/intro.png" width="220"> | <img src="Assets/readme/sim/mrz-scan.png" width="220"> | <img src="Assets/readme/sim/chip-guidance.png" width="220"> |
+| **Guided intro** | **Scan the document** | **Read the NFC chip** |
+| <img src="Assets/readme/sim/nfc-success.png" width="220"> | <img src="Assets/readme/sim/face-capture.png" width="220"> | <img src="Assets/readme/sim/result-success.png" width="220"> |
+| **Chip read ✓** | **Face + liveness** | **Verified ✓** |
+
+<sub>Document-holder details are blurred in the capture shots for privacy. Result data (JANE DOE / USA) is fake specimen data. Live capture in motion is in the demo GIF at the top (device recording).</sub>
 
 <div align="center">
 
@@ -278,24 +315,35 @@ CSCA certificates are public government credentials. IDVKit does **not** bundle 
 
 ## How it works
 
-Every step runs on the device — nothing is uploaded.
+Every step runs on the device — nothing is uploaded. *(On GitHub the diagram is interactive — use the ⊕ / ⊖ controls that appear on hover to zoom and pan.)*
 
 ```mermaid
-flowchart TD
-  subgraph device["📱 Your device — nothing leaves it"]
-    A[Document] --> B[MRZ scan · Vision OCR]
-    B --> C[NFC session · CoreNFC]
-    C --> D[Secure messaging · BAC / PACE]
-    D --> E[Data groups · DG1 · DG2 · DG15 · SOD]
-    E --> F[Passive auth · DG hashes + SOD sig + CSCA chain]
-    E --> G[Active / Chip auth · anti-clone]
-    E --> H[Face image from DG2]
-    H --> I[Face match + liveness]
-    F --> R[(IDVVerificationResult)]
+flowchart TB
+  subgraph device[" "]
+    direction TB
+    A([📄 Document]):::io --> B[MRZ scan<br/>Vision OCR]:::scan
+    B --> C[NFC session<br/>CoreNFC]:::nfc
+    C --> D[Secure messaging<br/>BAC · PACE]:::nfc
+    D --> E[Data groups<br/>DG1 · DG2 · DG15 · SOD]:::data
+    E --> F[Passive auth<br/>DG hashes + SOD sig + CSCA]:::verify
+    E --> G[Active / Chip auth<br/>anti-clone]:::verify
+    E --> H[Face image<br/>from DG2]:::face
+    H --> I[Face match<br/>+ liveness]:::face
+    F --> R([✅ IDVVerificationResult]):::io
     G --> R
     I --> R
   end
+
+  classDef io fill:#cffafe,stroke:#0e7490,color:#083344,font-weight:bold
+  classDef scan fill:#ede9fe,stroke:#6d28d9,color:#3b0764
+  classDef nfc fill:#e0e7ff,stroke:#4338ca,color:#1e1b4b
+  classDef data fill:#f1f5f9,stroke:#475569,color:#0f172a
+  classDef verify fill:#dcfce7,stroke:#15803d,color:#14532d
+  classDef face fill:#fef9c3,stroke:#a16207,color:#713f12
+  style device fill:#ffffff09,stroke:#2dd4bf,stroke-width:2px,stroke-dasharray:6 6
 ```
+
+> 🔒 The dashed teal box is the device boundary — **every box runs on-device; nothing crosses it.**
 
 ## Known limitations (being honest)
 

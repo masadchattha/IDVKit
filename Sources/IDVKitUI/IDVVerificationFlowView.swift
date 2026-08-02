@@ -109,20 +109,38 @@ public struct IDVVerificationFlowView: View {
         ) {
             self.configuration = configuration
             self.onCompletion = onCompletion
-            _scannedMRZ = State(initialValue: IDVMRZData(
+            let mockMRZ = IDVMRZData(
                 format: .td3, documentType: "P", issuingCountry: "USA",
                 documentNumber: "X1234567", nationality: "USA", surname: "DOE",
                 givenNames: "JANE", birthDate: "900101", expiryDate: "300101", sex: "F"
-            ))
+            )
+            _scannedMRZ = State(initialValue: mockMRZ)
             let step: Step = switch screen {
             case "documentSelection": .documentSelection
             case "documentScanGuidance": .documentScanGuidance
             case "chipGuidance": .chipGuidance
             case "faceIntro": .faceIntro
-            case "result": .result
+            case "result", "resultSuccess": .result
             default: .intro
             }
             _step = State(initialValue: step)
+            // `resultSuccess` populates a fully-verified specimen read (fake USA
+            // data, all authenticity checks green) so the success result screen can
+            // be captured in the Simulator without a device/NFC.
+            if screen == "resultSuccess" {
+                _passport = State(initialValue: IDVPassportData(
+                    mrz: mockMRZ,
+                    faceImageData: nil,
+                    dataGroupsRead: [.com, .dg1, .dg2, .dg15, .sod],
+                    authenticity: IDVChipAuthenticityResult(
+                        passiveAuthentication: IDVPassiveAuthenticationResult(
+                            dataIntegrity: .passed, chainOfTrust: .passed
+                        ),
+                        chipAuthentication: .passed,
+                        activeAuthentication: .passed
+                    )
+                ))
+            }
         }
     #endif
 
