@@ -2,21 +2,21 @@
 import PackageDescription
 
 let package = Package(
-    name: "VerifID",
+    name: "IDVKit",
     defaultLocalization: "en",
     platforms: [.iOS(.v18)],
     products: [
-        // Umbrella — re-exports every module, so `import VerifID` gives you the
-        // drop-in `VIDVerificationFlowView` and all components in one import.
-        .library(name: "VerifID", targets: ["VerifID"]),
+        // Umbrella — re-exports every module, so `import IDVKit` gives you the
+        // drop-in `IDVVerificationFlowView` and all components in one import.
+        .library(name: "IDVKit", targets: ["IDVKit"]),
         // À-la-carte headless products.
-        .library(name: "VerifIDCore", targets: ["VerifIDCore"]),
-        .library(name: "VerifIDJPEG2000", targets: ["VerifIDJPEG2000"]),
-        .library(name: "VerifIDMRZ", targets: ["VerifIDMRZ"]),
-        .library(name: "VerifIDNFC", targets: ["VerifIDNFC"]),
-        .library(name: "VerifIDFace", targets: ["VerifIDFace"]),
+        .library(name: "IDVKitCore", targets: ["IDVKitCore"]),
+        .library(name: "IDVKitJPEG2000", targets: ["IDVKitJPEG2000"]),
+        .library(name: "IDVKitMRZ", targets: ["IDVKitMRZ"]),
+        .library(name: "IDVKitNFC", targets: ["IDVKitNFC"]),
+        .library(name: "IDVKitFace", targets: ["IDVKitFace"]),
         // Drop-in customizable UI flow.
-        .library(name: "VerifIDUI", targets: ["VerifIDUI"])
+        .library(name: "IDVKitUI", targets: ["IDVKitUI"])
     ],
     dependencies: [
         // Passport passive authentication: hand-parse the SOD's CMS with
@@ -34,7 +34,7 @@ let package = Package(
         .package(url: "https://github.com/attaswift/BigInt.git", from: "5.3.0")
     ],
     targets: [
-        .target(name: "VerifIDCore"),
+        .target(name: "IDVKitCore"),
 
         // OpenJPEG 2.5.4, vendored as C source (BSD-2-Clause, see LICENSE inside).
         // Compiling from source gives us device + simulator + Catalyst slices,
@@ -49,16 +49,16 @@ let package = Package(
             ]
         ),
 
-        .target(name: "VerifIDJPEG2000", dependencies: ["VerifIDCore", "COpenJPEG"]),
+        .target(name: "IDVKitJPEG2000", dependencies: ["IDVKitCore", "COpenJPEG"]),
         .target(
-            name: "VerifIDMRZ",
-            dependencies: ["VerifIDCore"],
+            name: "IDVKitMRZ",
+            dependencies: ["IDVKitCore"],
             resources: [.process("Resources")]
         ),
         .target(
-            name: "VerifIDNFC",
+            name: "IDVKitNFC",
             dependencies: [
-                "VerifIDCore", "VerifIDMRZ", "VerifIDJPEG2000", "COpenJPEG",
+                "IDVKitCore", "IDVKitMRZ", "IDVKitJPEG2000", "COpenJPEG",
                 .product(name: "SwiftASN1", package: "swift-asn1"),
                 .product(name: "X509", package: "swift-certificates"),
                 .product(name: "BigInt", package: "BigInt"),
@@ -67,27 +67,27 @@ let package = Package(
             ]
         ),
         .target(
-            name: "VerifIDFace",
-            dependencies: ["VerifIDCore"],
+            name: "IDVKitFace",
+            dependencies: ["IDVKitCore"],
             resources: [.process("Resources")]
         ),
         .target(
-            name: "VerifIDUI",
-            dependencies: ["VerifIDCore", "VerifIDMRZ", "VerifIDNFC", "VerifIDFace"],
+            name: "IDVKitUI",
+            dependencies: ["IDVKitCore", "IDVKitMRZ", "IDVKitNFC", "IDVKitFace"],
             resources: [.process("Resources")]
         ),
         .target(
-            name: "VerifID",
-            dependencies: ["VerifIDCore", "VerifIDMRZ", "VerifIDNFC", "VerifIDFace", "VerifIDUI"]
+            name: "IDVKit",
+            dependencies: ["IDVKitCore", "IDVKitMRZ", "IDVKitNFC", "IDVKitFace", "IDVKitUI"]
         ),
 
-        .testTarget(name: "VerifIDCoreTests", dependencies: ["VerifIDCore"]),
-        .testTarget(name: "VerifIDMRZTests", dependencies: ["VerifIDMRZ"]),
-        .testTarget(name: "VerifIDNFCTests", dependencies: ["VerifIDNFC"]),
-        .testTarget(name: "VerifIDFaceTests", dependencies: ["VerifIDFace"]),
+        .testTarget(name: "IDVKitCoreTests", dependencies: ["IDVKitCore"]),
+        .testTarget(name: "IDVKitMRZTests", dependencies: ["IDVKitMRZ"]),
+        .testTarget(name: "IDVKitNFCTests", dependencies: ["IDVKitNFC"]),
+        .testTarget(name: "IDVKitFaceTests", dependencies: ["IDVKitFace"]),
         .testTarget(
-            name: "VerifIDJPEG2000Tests",
-            dependencies: ["VerifIDJPEG2000", "COpenJPEG"],
+            name: "IDVKitJPEG2000Tests",
+            dependencies: ["IDVKitJPEG2000", "COpenJPEG"],
             resources: [.copy("Fixtures/face_64x64.jp2")]
         )
     ]

@@ -11,3 +11,11 @@ DerivedData/
 *.xcodeproj/
 !*.xcodeproj/project.pbxproj
 Examples/**/*.xcodeproj/
+
+# Local-only AI-assistant files — never pushed to the public repo
+CLAUDE.md
+AGENTS.md
+.claude/
+.cursor/
+.aider*
+.windsurfrules

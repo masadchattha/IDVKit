@@ -31,18 +31,18 @@ jobs:
           xcodebuild -version
 
       - name: Resolve packages
-        run: xcodebuild -resolvePackageDependencies -scheme VerifID-Package
+        run: xcodebuild -resolvePackageDependencies -scheme IDVKit-Package
 
       - name: Build
         run: >
           xcodebuild build
-          -scheme VerifID
+          -scheme IDVKit
           -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
 
       - name: Test
         run: >
           xcodebuild test
-          -scheme VerifID-Package
+          -scheme IDVKit-Package
           -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
           -resultBundlePath TestResults.xcresult
 

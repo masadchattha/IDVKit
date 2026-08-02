@@ -1,6 +1,6 @@
 # Security Policy
 
-VerifID is security-sensitive software (identity documents, biometrics).
+IDVKit is security-sensitive software (identity documents, biometrics).
 
 ## Reporting a vulnerability
 Please use GitHub's private vulnerability reporting ("Report a vulnerability"
