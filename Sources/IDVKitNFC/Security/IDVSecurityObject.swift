@@ -10,9 +10,9 @@
 import _CryptoExtras
 import Crypto
 import Foundation
+import IDVKitCore
 import OSLog
 import SwiftASN1
-import IDVKitCore
 import X509
 
 /// Parses EF.SOD — the eMRTD Document Security Object, a CMS SignedData

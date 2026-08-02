@@ -10,8 +10,8 @@
 #if canImport(CoreNFC)
     import CoreNFC
     import Foundation
-    import OSLog
     import IDVKitCore
+    import OSLog
 
     /// A live CoreNFC ISO 7816 session over a passport chip.
     ///

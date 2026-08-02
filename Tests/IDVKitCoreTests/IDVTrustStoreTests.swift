@@ -8,8 +8,8 @@
 //
 
 import Foundation
-import Testing
 import IDVKitCore
+import Testing
 
 struct IDVTrustStoreTests {
     @Test func certificatesDERArePreservedInOrder() {

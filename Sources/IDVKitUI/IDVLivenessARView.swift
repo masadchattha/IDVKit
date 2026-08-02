@@ -9,10 +9,10 @@
 
 import ARKit
 import CoreImage
-import simd
-import SwiftUI
 import IDVKitCore
 import IDVKitFace
+import simd
+import SwiftUI
 
 /// SwiftUI bridge over an `ARSCNView` running front-camera face tracking. It
 /// converts each `ARFaceAnchor` into a plain ``IDVFaceFrame`` (so the liveness

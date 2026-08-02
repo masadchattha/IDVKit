@@ -8,10 +8,10 @@
 //
 
 import Foundation
-import OSLog
 import IDVKitCore
 import IDVKitJPEG2000
 import IDVKitMRZ
+import OSLog
 
 /// Drives the passport read once BAC has established a Secure Messaging channel:
 /// selects each elementary file and reads it in ≤223-byte chunks (staying well

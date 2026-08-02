@@ -7,8 +7,8 @@
 //  https://github.com/masadchattha/IDVKit
 //
 
-import SwiftUI
 import IDVKitCore
+import SwiftUI
 
 /// A short coaching screen shown before the live face check (gated by
 /// ``IDVFaceConfiguration/showsTutorial``). It's a **swipeable pager** (no

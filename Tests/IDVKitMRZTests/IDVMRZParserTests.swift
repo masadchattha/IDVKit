@@ -7,9 +7,9 @@
 //  https://github.com/masadchattha/IDVKit
 //
 
-import Testing
 import IDVKitCore
 @testable import IDVKitMRZ
+import Testing
 
 // ICAO 9303 part 4 Appendix B specimen (Utopia / ANNA MARIA ERIKSSON).
 private let specimenLine1 = "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<"

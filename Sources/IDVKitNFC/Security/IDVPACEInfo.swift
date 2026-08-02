@@ -8,8 +8,8 @@
 //
 
 import Foundation
-import SwiftASN1
 import IDVKitCore
+import SwiftASN1
 
 /// A parsed `PACEInfo` from the chip's `EF.CardAccess` (ICAO Doc 9303 Part 11
 /// §9.2.1): the PACE protocol OID, version, and the domain-parameter id.

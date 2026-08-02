@@ -12,10 +12,10 @@ import CoreGraphics
 import CoreImage
 import CoreML
 import Foundation
+import IDVKitCore
 import ImageIO
 import OSLog
 import UniformTypeIdentifiers
-import IDVKitCore
 import Vision
 
 /// On-device face matching: Vision landmarks → ArcFace 5-point alignment

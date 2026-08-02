@@ -14,9 +14,9 @@
 
 import _CryptoExtras
 import Foundation
+import IDVKitCore
 import OSLog
 import SwiftASN1
-import IDVKitCore
 import X509
 
 extension IDVSecurityObject {

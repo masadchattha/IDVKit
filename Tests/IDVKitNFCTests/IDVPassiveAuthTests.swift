@@ -9,9 +9,9 @@
 
 import Crypto
 import Foundation
-import Testing
 import IDVKitCore
 @testable import IDVKitNFC
+import Testing
 
 /// A tiny DER builder for synthesizing test structures.
 private enum DER {

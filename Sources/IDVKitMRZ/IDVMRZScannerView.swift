@@ -8,9 +8,9 @@
 //
 
 import AVFoundation
+import IDVKitCore
 import SwiftUI
 import UIKit
-import IDVKitCore
 
 /// Drop-in MRZ scanning screen: live camera feed under a dimmed scrim with a
 /// passport-shaped cutout, highlighted MRZ strip, animated scan line, corner

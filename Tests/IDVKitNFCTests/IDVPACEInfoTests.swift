@@ -8,8 +8,8 @@
 //
 
 import Foundation
-import Testing
 @testable import IDVKitNFC
+import Testing
 
 struct PACEInfoTests {
     /// The PACEInfo from ICAO Doc 9303 Part 11, Appendix G.1, wrapped in an

@@ -9,10 +9,10 @@
 
 import Crypto
 import Foundation
-import SwiftASN1
-import Testing
 import IDVKitCore
 @testable import IDVKitNFC
+import SwiftASN1
+import Testing
 import X509
 
 /// Exercises IDVKit's own X.509 parser + DSC→CSCA verification against real,

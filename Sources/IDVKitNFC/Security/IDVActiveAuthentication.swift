@@ -9,9 +9,9 @@
 
 import BigInt
 import Foundation
+import IDVKitCore
 import OSLog
 import SwiftASN1
-import IDVKitCore
 
 /// Performs Active Authentication (ICAO 9303 Part 11 §6.1): the terminal sends
 /// a random challenge; the chip signs it with a private key that never leaves

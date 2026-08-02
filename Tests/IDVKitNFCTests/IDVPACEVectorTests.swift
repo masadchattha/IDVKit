@@ -12,8 +12,8 @@
 //
 
 import Foundation
-import Testing
 @testable import IDVKitNFC
+import Testing
 
 struct PACEKeyDerivationVectorTests {
     /// K = final ECDH shared-secret x-coordinate from Appendix G.1.

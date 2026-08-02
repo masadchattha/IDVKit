@@ -9,8 +9,8 @@
 
 import BigInt
 import Foundation
-import SwiftASN1
 import IDVKitCore
+import SwiftASN1
 
 /// Resolves an elliptic curve from a `SubjectPublicKeyInfo` algorithm parameter,
 /// which eMRTD DG14 carries either as a **named-curve OID** or as **explicit

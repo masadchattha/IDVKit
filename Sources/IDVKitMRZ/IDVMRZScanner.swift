@@ -9,9 +9,9 @@
 
 @preconcurrency import AVFoundation
 import Foundation
+import IDVKitCore
 import OSLog
 import UIKit
-import IDVKitCore
 import Vision
 
 /// Live camera MRZ scanner: AVFoundation capture + the Vision framework's

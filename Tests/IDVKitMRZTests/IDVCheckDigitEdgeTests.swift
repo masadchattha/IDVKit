@@ -7,8 +7,8 @@
 //  https://github.com/masadchattha/IDVKit
 //
 
-import Testing
 import IDVKitMRZ
+import Testing
 
 struct IDVCheckDigitEdgeTests {
     @Test func fillerOnlyAndEmptyAreZero() {

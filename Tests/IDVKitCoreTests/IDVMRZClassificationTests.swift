@@ -7,8 +7,8 @@
 //  https://github.com/masadchattha/IDVKit
 //
 
-import Testing
 import IDVKitCore
+import Testing
 
 struct IDVMRZClassificationTests {
     private func mrz(_ format: IDVMRZData.Format, _ code: String) -> IDVMRZData {

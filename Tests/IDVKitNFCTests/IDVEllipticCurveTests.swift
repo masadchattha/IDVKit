@@ -13,8 +13,8 @@
 
 import BigInt
 import Foundation
-import Testing
 @testable import IDVKitNFC
+import Testing
 
 struct EllipticCurveTests {
     private let curve = IDVStandardCurves.brainpoolP256r1

@@ -7,8 +7,8 @@
 //  https://github.com/masadchattha/IDVKit
 //
 
-import Testing
 @testable import IDVKitCore
+import Testing
 
 struct IDVConfigurationTests {
     @Test func defaultConfigurationIsSane() {

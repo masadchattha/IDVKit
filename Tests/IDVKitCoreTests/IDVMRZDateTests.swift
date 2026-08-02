@@ -8,8 +8,8 @@
 //
 
 import Foundation
-import Testing
 @testable import IDVKitCore
+import Testing
 
 struct MRZDateInterpreterTests {
     private var utc: Calendar {

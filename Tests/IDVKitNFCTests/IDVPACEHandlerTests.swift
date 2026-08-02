@@ -14,9 +14,9 @@
 
 import BigInt
 import Foundation
-import Testing
 import IDVKitMRZ
 @testable import IDVKitNFC
+import Testing
 
 struct PACEHandlerTests {
     /// Standard ICAO PACE worked-example MRZ (yields K_π = 89DED1…2849DD).

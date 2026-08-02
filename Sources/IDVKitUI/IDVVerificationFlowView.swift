@@ -7,12 +7,12 @@
 //  https://github.com/masadchattha/IDVKit
 //
 
-import PhotosUI
-import SwiftUI
 import IDVKitCore
 import IDVKitFace
 import IDVKitMRZ
 import IDVKitNFC
+import PhotosUI
+import SwiftUI
 
 /// The drop-in verification flow: **Intro → scan MRZ → read NFC chip → result**.
 ///

@@ -7,9 +7,9 @@
 //  https://github.com/masadchattha/IDVKit
 //
 
-import Testing
 import IDVKitCore
 @testable import IDVKitFace
+import Testing
 
 struct FaceEmbeddingMathTests {
     @Test func identicalVectorsAreMaximallySimilar() {

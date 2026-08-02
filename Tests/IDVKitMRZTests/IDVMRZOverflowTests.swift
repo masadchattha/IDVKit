@@ -7,8 +7,8 @@
 //  https://github.com/masadchattha/IDVKit
 //
 
-import Testing
 @testable import IDVKitMRZ
+import Testing
 
 struct IDVMRZOverflowTests {
     @Test func shortNumberIsReturnedWithItsPrintedCheck() {

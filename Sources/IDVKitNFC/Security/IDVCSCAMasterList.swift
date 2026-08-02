@@ -8,9 +8,9 @@
 //
 
 import Foundation
+import IDVKitCore
 import OSLog
 import SwiftASN1
-import IDVKitCore
 
 /// Parses an ICAO CSCA Master List (Doc 9303 Part 12) into its member CSCA
 /// certificates.

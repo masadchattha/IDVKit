@@ -7,10 +7,10 @@
 //  https://github.com/masadchattha/IDVKit
 //
 
-import Testing
 import IDVKitCore
 import IDVKitMRZ
 @testable import IDVKitNFC
+import Testing
 
 struct ReadOperationTests {
     @Test func parsesTotalObjectLengthShortForm() throws {

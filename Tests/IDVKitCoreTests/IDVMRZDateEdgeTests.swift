@@ -8,8 +8,8 @@
 //
 
 import Foundation
-import Testing
 import IDVKitCore
+import Testing
 
 struct IDVMRZDateEdgeTests {
     private let cal = Calendar(identifier: .gregorian)

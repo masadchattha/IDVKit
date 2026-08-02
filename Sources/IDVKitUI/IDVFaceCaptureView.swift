@@ -9,11 +9,11 @@
 
 import Combine
 import CoreGraphics
+import IDVKitCore
+import IDVKitFace
 import OSLog
 import SwiftUI
 import UIKit
-import IDVKitCore
-import IDVKitFace
 
 /// Full-screen active-liveness capture: the user completes a couple of randomised
 /// challenges (with brief grace-period pauses so each instruction is readable),

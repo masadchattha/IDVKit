@@ -7,9 +7,9 @@
 //  https://github.com/masadchattha/IDVKit
 //
 
-import Testing
 import IDVKitCore
 @testable import IDVKitNFC
+import Testing
 
 struct DataGroupParserTests {
     @Test func parsesDG1TD3MRZ() throws {

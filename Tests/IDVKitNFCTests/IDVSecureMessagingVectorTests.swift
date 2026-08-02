@@ -10,9 +10,9 @@
 //  ("Secure Messaging" worked example).
 //
 
-import Testing
 import IDVKitCore
 @testable import IDVKitNFC
+import Testing
 
 struct SecureMessagingVectorTests {
     private func session() -> IDVSecureMessaging {

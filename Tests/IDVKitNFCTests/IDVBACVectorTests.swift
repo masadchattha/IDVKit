@@ -11,10 +11,10 @@
 //  fails, the crypto is wrong — not the test.
 //
 
-import Testing
 import IDVKitCore
 import IDVKitMRZ
 @testable import IDVKitNFC
+import Testing
 
 struct BACVectorTests {
     // MARK: MRZ key seed (D.2)

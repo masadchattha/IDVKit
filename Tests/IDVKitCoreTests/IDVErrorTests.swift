@@ -8,8 +8,8 @@
 //
 
 import Foundation
-import Testing
 import IDVKitCore
+import Testing
 
 struct IDVErrorTests {
     /// Every error must surface a non-empty, user-presentable description.

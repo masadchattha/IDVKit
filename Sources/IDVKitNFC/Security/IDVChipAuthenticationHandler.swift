@@ -9,8 +9,8 @@
 
 import BigInt
 import Foundation
-import OSLog
 import IDVKitCore
+import OSLog
 
 /// Performs Chip Authentication (ICAO 9303 Part 11 §6.2 / BSI TR-03110): an
 /// ephemeral-static ECDH with the chip's DG14 static key. The resulting shared

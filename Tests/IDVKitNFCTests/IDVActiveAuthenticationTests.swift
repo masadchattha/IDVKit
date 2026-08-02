@@ -10,8 +10,8 @@
 import BigInt
 import Crypto
 import Foundation
-import Testing
 @testable import IDVKitNFC
+import Testing
 
 struct ISO9796RecoveryTests {
     private let challenge: [UInt8] = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08]

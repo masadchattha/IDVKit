@@ -7,8 +7,8 @@
 //  https://github.com/masadchattha/IDVKit
 //
 
-import Testing
 import IDVKitCore
+import Testing
 
 struct IDVConfigurationVariantTests {
     @Test func mrzDefaultsAreDocumentAgnostic() {

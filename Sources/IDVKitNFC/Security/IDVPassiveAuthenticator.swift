@@ -8,8 +8,8 @@
 //
 
 import Foundation
-import OSLog
 import IDVKitCore
+import OSLog
 
 /// Performs eMRTD Passive Authentication (ICAO Doc 9303 Part 11 §5.1):
 ///

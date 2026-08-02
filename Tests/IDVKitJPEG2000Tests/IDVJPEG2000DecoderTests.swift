@@ -8,9 +8,9 @@
 //
 
 import Foundation
-import Testing
 import IDVKitCore
 @testable import IDVKitJPEG2000
+import Testing
 
 struct CodecSniffTests {
     @Test func socMarkerMeansRawCodestream() {

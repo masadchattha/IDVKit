@@ -11,8 +11,8 @@ import _CryptoExtras
 import BigInt
 import Crypto
 import Foundation
-import SwiftASN1
 import IDVKitCore
+import SwiftASN1
 
 /// A document public key (RSA or elliptic-curve) with unified signature
 /// verification. EC uses IDVKit's own math, so brainpool curves — which Apple's

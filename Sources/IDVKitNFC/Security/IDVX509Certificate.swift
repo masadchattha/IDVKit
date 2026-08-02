@@ -8,8 +8,8 @@
 //
 
 import Foundation
-import SwiftASN1
 import IDVKitCore
+import SwiftASN1
 
 /// A minimal X.509 certificate parser (RFC 5280) that extracts only what
 /// passport chain-of-trust needs. IDVKit parses certificates itself because

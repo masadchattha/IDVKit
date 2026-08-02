@@ -10,8 +10,8 @@
 import COpenJPEG
 import CoreGraphics
 import Foundation
-import OSLog
 import IDVKitCore
+import OSLog
 
 /// JPEG2000 → `CGImage` decoding for eMRTD DG2 face images.
 ///

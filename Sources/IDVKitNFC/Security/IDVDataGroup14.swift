@@ -8,9 +8,9 @@
 //
 
 import Foundation
+import IDVKitCore
 import OSLog
 import SwiftASN1
-import IDVKitCore
 
 /// Parsed Chip Authentication material from DG14 (ICAO 9303 Part 11 §6.2 /
 /// BSI TR-03110). DG14 (tag `6E`) is a `SET OF SecurityInfo`; the two entries
