@@ -729,7 +729,8 @@ public struct IDVVerificationFlowView: View {
                     .background(theme.surface, in: RoundedRectangle(cornerRadius: theme.cornerRadius))
                 }
 
-                // Success badges, grouped and left-aligned.
+                // Success badges: rows are left-aligned to each other, and the whole
+                // group is sized to its content so the parent centres it horizontally.
                 VStack(alignment: .leading, spacing: IDVLayout.Spacing.medium) {
                     // The chip is access-controlled by the scanned MRZ, so a
                     // successful read proves the scanned document matches the chip.
@@ -742,7 +743,7 @@ public struct IDVVerificationFlowView: View {
                         faceMatchBadge(faceMatch)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: true, vertical: false)
 
                 Spacer()
                 primaryButton(titleKey: IDVStrings.Button.done) {

@@ -18,9 +18,11 @@
 ![100% on-device](https://img.shields.io/badge/100%25-on--device-2DD4BF.svg)
 ![servers: 0](https://img.shields.io/badge/servers-0-success.svg)
 
-**The open-source, 100%-on-device KYC & identity-verification SDK for iOS.**
-NFC document-chip reading (passport · ID card · residence permit) · MRZ scan · face match · liveness.
-**No servers. No API keys. Nothing leaves the device.**
+### Read a passport or ID's NFC chip, prove it's authentic, and match the holder's face — 100% on the device.
+
+**IDVKit** is the open-source **Onfido / Persona / Veriff alternative** for iOS: eMRTD chip reading (BAC · PACE · passive **and** active authentication), MRZ scanning, MobileFaceNet face match, and ARKit liveness — with **no servers, no API keys, and no per-verification fees.** Every byte stays on the phone.
+
+`NFC eMRTD`&nbsp; `BAC / PACE`&nbsp; `Passive + Active auth`&nbsp; `MRZ OCR`&nbsp; `Face match`&nbsp; `Liveness`&nbsp; `Swift 6`&nbsp; `iOS 18+`
 
 <img src="Assets/readme/demo-full-flow.gif" alt="IDVKit full verification flow" width="82%">
 
@@ -136,10 +138,10 @@ The whole flow, captured live from the running app:
 |:---:|:---:|:---:|
 | <img src="Assets/readme/sim/intro.png" width="220"> | <img src="Assets/readme/sim/doc-select.png" width="220"> | <img src="Assets/readme/sim/chip-guidance.png" width="220"> |
 | **Guided intro** | **Pick your document** | **Read the NFC chip** |
-| <img src="Assets/readme/sim/face-intro.png" width="220"> | <img src="Assets/readme/sim/face-capture.png" width="220"> | <img src="Assets/readme/sim/result-success.png" width="220"> |
-| **Match your face** | **Liveness capture** | **Verified ✓** |
+| <img src="Assets/readme/sim/nfc-success.png" width="220"> | <img src="Assets/readme/sim/face-capture.png" width="220"> | <img src="Assets/readme/sim/result-success.png" width="220"> |
+| **Chip read ✓** | **Liveness capture** | **Verified ✓** |
 
-<sub>All demo data is fake specimen data (EMMA CARTER / USA); the demo portrait is an illustration, not a real person. The live MRZ-camera scan runs only on a device — that clip comes in the demo GIF at the top.</sub>
+<sub>Demo data is fake specimen data (EMMA CARTER / USA); the demo portrait is an illustration, not a real person. The MRZ camera scan and the "chip read ✓" moment are device-only states — the full live run is in the demo GIF at the top.</sub>
 
 <div align="center">
 
