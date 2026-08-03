@@ -143,13 +143,6 @@ The whole flow, captured live from the running app:
 
 <sub>Demo data is fake specimen data (EMMA CARTER / USA); the demo portrait is an illustration, not a real person. The MRZ camera scan and the "chip read ✓" moment are device-only states — the full live run is in the demo GIF at the top.</sub>
 
-<div align="center">
-
-[<img src="Assets/readme/video-poster.png" width="60%">](https://github.com/masadchattha/IDVKit)
-<!-- TODO: point this link at the real YouTube/Loom walkthrough -->
-
-</div>
-
 ## Requirements
 
 | | |
