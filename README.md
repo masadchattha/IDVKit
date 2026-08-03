@@ -317,35 +317,30 @@ CSCA certificates are public government credentials. IDVKit does **not** bundle 
 
 ## How it works
 
-Every step runs on the device — nothing is uploaded. *(On GitHub the diagram is interactive — use the ⊕ / ⊖ controls that appear on hover to zoom and pan.)*
+Every step runs on the device — nothing is uploaded.
 
 ```mermaid
-flowchart TB
+flowchart LR
   subgraph device[" "]
-    direction TB
-    A([📄 Document]):::io --> B[MRZ scan<br/>Vision OCR]:::scan
-    B --> C[NFC session<br/>CoreNFC]:::nfc
-    C --> D[Secure messaging<br/>BAC · PACE]:::nfc
-    D --> E[Data groups<br/>DG1 · DG2 · DG15 · SOD]:::data
-    E --> F[Passive auth<br/>DG hashes + SOD sig + CSCA]:::verify
-    E --> G[Active / Chip auth<br/>anti-clone]:::verify
-    E --> H[Face image<br/>from DG2]:::face
-    H --> I[Face match<br/>+ liveness]:::face
-    F --> R([✅ IDVVerificationResult]):::io
-    G --> R
-    I --> R
+    direction LR
+    A([📄 Document]):::io --> B[MRZ scan<br/>Vision OCR]:::step
+    B --> C[NFC read<br/>BAC · PACE]:::step
+    C --> E[Data groups<br/>DG1 · DG2 · SOD]:::step
+    E --> F[Passive + Active<br/>authentication]:::verify
+    E --> H[Face match<br/>+ liveness]:::face
+    F --> R([✅ Verified]):::result
+    H --> R
   end
 
-  classDef io fill:#cffafe,stroke:#0e7490,color:#083344,font-weight:bold
-  classDef scan fill:#ede9fe,stroke:#6d28d9,color:#3b0764
-  classDef nfc fill:#e0e7ff,stroke:#4338ca,color:#1e1b4b
-  classDef data fill:#f1f5f9,stroke:#475569,color:#0f172a
-  classDef verify fill:#dcfce7,stroke:#15803d,color:#14532d
-  classDef face fill:#fef9c3,stroke:#a16207,color:#713f12
-  style device fill:#ffffff09,stroke:#2dd4bf,stroke-width:2px,stroke-dasharray:6 6
+  classDef io fill:#eeedff,stroke:#6c63ff,color:#2a2560,font-weight:bold
+  classDef step fill:#f3f2ff,stroke:#8b84ff,color:#2a2560
+  classDef verify fill:#e3f9ec,stroke:#30c04e,color:#14532d
+  classDef face fill:#e7e5ff,stroke:#6c63ff,color:#2a2560
+  classDef result fill:#d7f5e2,stroke:#30c04e,color:#14532d,font-weight:bold
+  style device fill:#ffffff00,stroke:#6c63ff,stroke-width:2px,stroke-dasharray:6 6
 ```
 
-> 🔒 The dashed teal box is the device boundary — **every box runs on-device; nothing crosses it.**
+> 🔒 The dashed indigo box is the device boundary — **every step runs on-device; nothing crosses it.**
 
 ## Known limitations (being honest)
 
