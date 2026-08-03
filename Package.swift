@@ -34,7 +34,7 @@ let package = Package(
         .package(url: "https://github.com/attaswift/BigInt.git", from: "5.3.0")
     ],
     targets: [
-        .target(name: "IDVKitCore"),
+        .target(name: "IDVKitCore", resources: [.copy("PrivacyInfo.xcprivacy")]),
 
         // OpenJPEG 2.5.4, vendored as C source (BSD-2-Clause, see LICENSE inside).
         // Compiling from source gives us device + simulator + Catalyst slices,
@@ -49,11 +49,15 @@ let package = Package(
             ]
         ),
 
-        .target(name: "IDVKitJPEG2000", dependencies: ["IDVKitCore", "COpenJPEG"]),
+        .target(
+            name: "IDVKitJPEG2000",
+            dependencies: ["IDVKitCore", "COpenJPEG"],
+            resources: [.copy("PrivacyInfo.xcprivacy")]
+        ),
         .target(
             name: "IDVKitMRZ",
             dependencies: ["IDVKitCore"],
-            resources: [.process("Resources")]
+            resources: [.process("Resources"), .copy("PrivacyInfo.xcprivacy")]
         ),
         .target(
             name: "IDVKitNFC",
@@ -64,21 +68,23 @@ let package = Package(
                 .product(name: "BigInt", package: "BigInt"),
                 .product(name: "Crypto", package: "swift-crypto"),
                 .product(name: "_CryptoExtras", package: "swift-crypto")
-            ]
+            ],
+            resources: [.copy("PrivacyInfo.xcprivacy")]
         ),
         .target(
             name: "IDVKitFace",
             dependencies: ["IDVKitCore"],
-            resources: [.process("Resources")]
+            resources: [.process("Resources"), .copy("PrivacyInfo.xcprivacy")]
         ),
         .target(
             name: "IDVKitUI",
             dependencies: ["IDVKitCore", "IDVKitMRZ", "IDVKitNFC", "IDVKitFace"],
-            resources: [.process("Resources")]
+            resources: [.process("Resources"), .copy("PrivacyInfo.xcprivacy")]
         ),
         .target(
             name: "IDVKit",
-            dependencies: ["IDVKitCore", "IDVKitMRZ", "IDVKitNFC", "IDVKitFace", "IDVKitUI"]
+            dependencies: ["IDVKitCore", "IDVKitMRZ", "IDVKitNFC", "IDVKitFace", "IDVKitUI"],
+            resources: [.copy("PrivacyInfo.xcprivacy")]
         ),
 
         .testTarget(name: "IDVKitCoreTests", dependencies: ["IDVKitCore"]),

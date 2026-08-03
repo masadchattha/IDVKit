@@ -28,7 +28,7 @@
 
 </div>
 
-> ⚠️ **Status: pre-release (`0.1.0-dev`).** The full pipeline — document scan, NFC chip read, passive + active authentication, and face match + liveness — is implemented and validated on device. Before shipping in a **commercial, public** product, confirm the bundled face-embedding model's license (see [`Sources/IDVKitFace/Resources/README.md`](Sources/IDVKitFace/Resources/README.md)).
+> ⚠️ **Status: early release (`0.1.0`).** The full pipeline — document scan, NFC chip read, passive + active authentication, and face match + liveness — is implemented and validated on device. APIs may still shift before `1.0`.
 
 ## Contents
 

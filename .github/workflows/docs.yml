@@ -1,0 +1,57 @@
+name: Docs
+
+# Builds the DocC catalog and deploys it to GitHub Pages
+# (free, served at https://<owner>.github.io/IDVKit/documentation/idvkit).
+#
+# One-time setup before this works:
+#   1. The repo must be public (Pages is free for public repos), OR on GitHub Pro.
+#   2. Settings → Pages → Build and deployment → Source = "GitHub Actions".
+# Then run this workflow (Actions → Docs → Run workflow), or add a push trigger.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Select newest Xcode 16.x
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+      - name: Build DocC static site
+        run: |
+          set -eo pipefail
+          xcodebuild docbuild \
+            -scheme IDVKit \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath .derivedData | xcpretty || xcodebuild docbuild \
+            -scheme IDVKit \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath .derivedData
+          ARCHIVE="$(find .derivedData -type d -name 'IDVKit.doccarchive' | head -1)"
+          "$(xcrun --find docc)" process-archive transform-for-static-hosting "$ARCHIVE" \
+            --output-path _site \
+            --hosting-base-path IDVKit
+          echo '<script>location.href="/IDVKit/documentation/idvkit"</script>' > _site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
