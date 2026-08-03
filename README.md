@@ -24,7 +24,7 @@
 
 `NFC eMRTD`&nbsp; `BAC / PACE`&nbsp; `Passive + Active auth`&nbsp; `MRZ OCR`&nbsp; `Face match`&nbsp; `Liveness`&nbsp; `Swift 6`&nbsp; `iOS 18+`
 
-<img src="Assets/readme/demo-full-flow.gif" alt="IDVKit full verification flow" width="82%">
+<img src="Assets/readme/demo-full-flow.gif" alt="IDVKit full verification flow" width="270">
 
 </div>
 
