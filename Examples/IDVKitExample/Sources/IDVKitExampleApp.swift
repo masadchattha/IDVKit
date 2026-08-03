@@ -9,6 +9,7 @@
 
 import OSLog
 import SwiftUI
+import UIKit
 import IDVKit
 
 /// Example-app logger, same subsystem as the SDK so it shows in one stream.
@@ -153,7 +154,8 @@ struct ContentView: View {
                 )) {
                     IDVVerificationFlowView(
                         configuration: flowConfiguration,
-                        debugStartAt: ProcessInfo.processInfo.environment["IDV_DEBUG_STEP"] ?? "intro"
+                        debugStartAt: ProcessInfo.processInfo.environment["IDV_DEBUG_STEP"] ?? "intro",
+                        debugFaceImageData: Self.debugFaceImageData
                     ) { _ in }
                 }
                 // Design-review harness for the face capture: `SIMCTL_CHILD_IDV_DEBUG_FACE=1
@@ -250,12 +252,15 @@ struct ContentView: View {
             }
         }
 
-        /// A solid placeholder used only to instantiate `IDVFaceCaptureView` in the
-        /// Simulator design-review harness — the reference is consumed at match
-        /// time, which needs a physical device anyway.
-        /// A solid placeholder square, or `nil` if the context can't be created —
-        /// optional so the debug harness never force-unwraps (call sites `if let`).
+        /// The bundled demo portrait, so the liveness/face-intro/result screens
+        /// render an actual face in the Simulator (which has no camera). Swap
+        /// `Resources/demo-face.png` to change it. Falls back to a solid square if
+        /// the file is missing so the harness never force-unwraps.
         static var debugPlaceholderFace: CGImage? {
+            if let url = Bundle.main.url(forResource: "demo-face", withExtension: "png"),
+               let image = UIImage(contentsOfFile: url.path)?.cgImage {
+                return image
+            }
             guard let context = CGContext(
                 data: nil, width: 112, height: 112, bitsPerComponent: 8, bytesPerRow: 0,
                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
@@ -263,6 +268,12 @@ struct ContentView: View {
             context.setFillColor(CGColor(red: 0.42, green: 0.39, blue: 1, alpha: 1))
             context.fill(CGRect(x: 0, y: 0, width: 112, height: 112))
             return context.makeImage()
+        }
+
+        /// The demo portrait as JPEG data, for the DEBUG success-result harness so
+        /// the "verified" screen shows the document photo.
+        static var debugFaceImageData: Data? {
+            debugPlaceholderFace.flatMap { UIImage(cgImage: $0).jpegData(compressionQuality: 0.9) }
         }
     #endif
 

@@ -105,6 +105,7 @@ public struct IDVVerificationFlowView: View {
         public init(
             configuration: IDVConfiguration = .default,
             debugStartAt screen: String,
+            debugFaceImageData: Data? = nil,
             onCompletion: @escaping (IDVVerificationResult) -> Void
         ) {
             self.configuration = configuration
@@ -130,7 +131,7 @@ public struct IDVVerificationFlowView: View {
             if screen == "resultSuccess" {
                 _passport = State(initialValue: IDVPassportData(
                     mrz: mockMRZ,
-                    faceImageData: nil,
+                    faceImageData: debugFaceImageData,
                     dataGroupsRead: [.com, .dg1, .dg2, .dg15, .sod],
                     authenticity: IDVChipAuthenticityResult(
                         passiveAuthentication: IDVPassiveAuthenticationResult(

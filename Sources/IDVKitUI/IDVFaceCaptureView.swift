@@ -137,12 +137,11 @@ public struct IDVFaceCaptureView: View {
         Group {
             #if DEBUG
                 if debugDesignPreview {
-                    ZStack {
-                        IDVColor.cameraPlaceholder
-                        Image(systemName: IDVIcon.faceIntro)
-                            .font(.system(size: oval.width * IDVLayout.Scale.placeholderGlyph))
-                            .foregroundStyle(IDVColor.cameraPlaceholderGlyph)
-                    }
+                    // Render the reference image as a stand-in for the live camera
+                    // feed so the capture design can be reviewed in the Simulator.
+                    Image(decorative: reference, scale: 1, orientation: .up)
+                        .resizable()
+                        .scaledToFill()
                 } else {
                     liveCamera
                 }

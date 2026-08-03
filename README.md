@@ -130,16 +130,16 @@ Take the umbrella for everything, or import just the brick you need — each mod
 
 ## See it in action
 
-The whole flow, real screens:
+The whole flow, captured live from the running app:
 
 | | | |
 |:---:|:---:|:---:|
-| <img src="Assets/readme/sim/intro.png" width="220"> | <img src="Assets/readme/sim/mrz-scan.png" width="220"> | <img src="Assets/readme/sim/chip-guidance.png" width="220"> |
-| **Guided intro** | **Scan the document** | **Read the NFC chip** |
-| <img src="Assets/readme/sim/nfc-success.png" width="220"> | <img src="Assets/readme/sim/face-capture.png" width="220"> | <img src="Assets/readme/sim/result-success.png" width="220"> |
-| **Chip read ✓** | **Face + liveness** | **Verified ✓** |
+| <img src="Assets/readme/sim/intro.png" width="220"> | <img src="Assets/readme/sim/doc-select.png" width="220"> | <img src="Assets/readme/sim/chip-guidance.png" width="220"> |
+| **Guided intro** | **Pick your document** | **Read the NFC chip** |
+| <img src="Assets/readme/sim/face-intro.png" width="220"> | <img src="Assets/readme/sim/face-capture.png" width="220"> | <img src="Assets/readme/sim/result-success.png" width="220"> |
+| **Match your face** | **Liveness capture** | **Verified ✓** |
 
-<sub>All demo data is fake specimen data (EMMA CARTER / USA); the portrait is an illustration, not a real person. Full-motion capture will be in the demo GIF at the top (device recording).</sub>
+<sub>All demo data is fake specimen data (EMMA CARTER / USA); the demo portrait is an illustration, not a real person. The live MRZ-camera scan runs only on a device — that clip comes in the demo GIF at the top.</sub>
 
 <div align="center">
 
