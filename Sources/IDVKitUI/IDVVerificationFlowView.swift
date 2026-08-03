@@ -111,8 +111,8 @@ public struct IDVVerificationFlowView: View {
             self.onCompletion = onCompletion
             let mockMRZ = IDVMRZData(
                 format: .td3, documentType: "P", issuingCountry: "USA",
-                documentNumber: "X1234567", nationality: "USA", surname: "DOE",
-                givenNames: "JANE", birthDate: "900101", expiryDate: "300101", sex: "F"
+                documentNumber: "X1234567", nationality: "USA", surname: "CARTER",
+                givenNames: "EMMA", birthDate: "980314", expiryDate: "320314", sex: "F"
             )
             _scannedMRZ = State(initialValue: mockMRZ)
             let step: Step = switch screen {
@@ -728,16 +728,20 @@ public struct IDVVerificationFlowView: View {
                     .background(theme.surface, in: RoundedRectangle(cornerRadius: theme.cornerRadius))
                 }
 
-                // The chip is access-controlled by the scanned MRZ, so a
-                // successful read proves the scanned document matches the chip.
-                if mrzMatchesChip {
-                    badgeLabel(IDVStrings.Badge.mrzMatchesChip, systemImage: IDVIcon.mrzMatchesChip, color: theme.success)
+                // Success badges, grouped and left-aligned.
+                VStack(alignment: .leading, spacing: IDVLayout.Spacing.medium) {
+                    // The chip is access-controlled by the scanned MRZ, so a
+                    // successful read proves the scanned document matches the chip.
+                    if mrzMatchesChip {
+                        badgeLabel(IDVStrings.Badge.mrzMatchesChip, systemImage: IDVIcon.mrzMatchesChip, color: theme.success)
+                    }
+                    authenticityBadge(passport.authenticity.passiveAuthentication)
+                    antiCloneBadge(passport.authenticity)
+                    if let faceMatch {
+                        faceMatchBadge(faceMatch)
+                    }
                 }
-                authenticityBadge(passport.authenticity.passiveAuthentication)
-                antiCloneBadge(passport.authenticity)
-                if let faceMatch {
-                    faceMatchBadge(faceMatch)
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer()
                 primaryButton(titleKey: IDVStrings.Button.done) {

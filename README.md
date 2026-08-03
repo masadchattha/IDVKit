@@ -139,7 +139,7 @@ The whole flow, real screens:
 | <img src="Assets/readme/sim/nfc-success.png" width="220"> | <img src="Assets/readme/sim/face-capture.png" width="220"> | <img src="Assets/readme/sim/result-success.png" width="220"> |
 | **Chip read ✓** | **Face + liveness** | **Verified ✓** |
 
-<sub>Document-holder details are blurred in the capture shots for privacy. Result data (JANE DOE / USA) is fake specimen data. Live capture in motion is in the demo GIF at the top (device recording).</sub>
+<sub>All demo data is fake specimen data (EMMA CARTER / USA); the portrait is an illustration, not a real person. Full-motion capture will be in the demo GIF at the top (device recording).</sub>
 
 <div align="center">
 
