@@ -61,7 +61,7 @@ Commercial identity-verification SDKs charge per verification and upload your us
 | Active / Chip auth (anti-clone) | ✅ | ⚠️ partial | **✅** |
 | MRZ camera scan | ✅ | ✗ | **✅** |
 | Face match + liveness | ✅ | ✗ | **✅** |
-| JPEG2000 chip-photo decode (DG2) | ✅ | ⚠️ historically weak | **✅ OpenJPEG 2.5.4, vendored** |
+| JPEG2000 chip-photo decode (DG2) | ✅ | ⚠️ ImageIO only — J2K & many EU passports fail | **✅ OpenJPEG 2.5.4, vendored** |
 | Source | Closed | Open | **Open — audit it** |
 
 ## Features
