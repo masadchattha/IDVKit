@@ -42,7 +42,7 @@ jobs:
             --output-path _site \
             --hosting-base-path IDVKit
           echo '<script>location.href="/IDVKit/documentation/idvkit"</script>' > _site/index.html
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
 
