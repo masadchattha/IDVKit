@@ -31,7 +31,7 @@ let package = Package(
         // PACE needs elliptic-curve point math over brainpool curves, which
         // Apple's crypto stack cannot do. BigInt (pure Swift, MIT, no C) backs a
         // small curve-agnostic implementation covering brainpool + NIST + MODP-DH.
-        .package(url: "https://github.com/attaswift/BigInt.git", from: "5.3.0")
+        .package(url: "https://github.com/attaswift/BigInt.git", from: "6.0.1")
     ],
     targets: [
         .target(name: "IDVKitCore", resources: [.copy("PrivacyInfo.xcprivacy")]),
