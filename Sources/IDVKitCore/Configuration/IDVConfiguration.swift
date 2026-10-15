@@ -150,6 +150,9 @@ public struct IDVNFCConfiguration: Sendable {
         case holdNearPassport
         case authenticating
         case readingDataGroup(String, progress: Double)
+        /// The tag connection dropped mid-read and the SDK is polling for the
+        /// passport again to resume where it left off.
+        case reconnecting
         case success
         case failure
     }
@@ -170,6 +173,20 @@ public struct IDVNFCConfiguration: Sendable {
     public var accessProtocol: AccessProtocol
     /// Chip-authenticity policy — integrity-only, full chain-of-trust, or off.
     public var passiveAuthentication: PassiveAuthentication
+    /// READ BINARY chunk size, in bytes. Defaults to `160` (`0xA0`), the value
+    /// that reads most reliably across passport chips; some chips glitch at the
+    /// larger sizes an iPhone will otherwise negotiate. Clamped to `1…223` (223
+    /// is the ceiling that still fits a response under Secure Messaging padding).
+    /// Lower it only if a specific chip proves flaky at the default.
+    public var readChunkSize: Int
+    /// Whether a bad DG1 check digit fails the read. Default `true`.
+    ///
+    /// Some genuine passports ship with a known check-digit error in the printed
+    /// MRZ, which is mirrored into DG1. Passive authentication already proves
+    /// DG1's integrity cryptographically, so the check digit adds nothing for
+    /// chip data. Set to `false` to accept such a chip: the MRZ is returned and
+    /// the offending field is recorded in ``IDVPassportData/warnings``.
+    public var strictMRZChecksums: Bool
     /// Customize the text in Apple's NFC bottom sheet for every step —
     /// including localization and branding. Return `nil` from the closure to
     /// keep IDVKit's localized default for that step.
@@ -179,11 +196,15 @@ public struct IDVNFCConfiguration: Sendable {
         readDataGroups: [IDVDataGroupID] = [.com, .dg1, .dg2, .dg7, .dg11, .dg12, .dg14, .sod],
         accessProtocol: AccessProtocol = .automatic,
         passiveAuthentication: PassiveAuthentication = .integrityOnly,
+        readChunkSize: Int = 0xA0,
+        strictMRZChecksums: Bool = true,
         displayMessage: (@Sendable (ReadStep) -> String?)? = nil
     ) {
         self.readDataGroups = readDataGroups
         self.accessProtocol = accessProtocol
         self.passiveAuthentication = passiveAuthentication
+        self.readChunkSize = readChunkSize
+        self.strictMRZChecksums = strictMRZChecksums
         self.displayMessage = displayMessage
     }
 }

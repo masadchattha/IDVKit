@@ -20,10 +20,42 @@ struct DataGroupParserTests {
         let inner: [UInt8] = [0x5F, 0x1F, 0x81, UInt8(mrzBytes.count)] + mrzBytes
         let dg1: [UInt8] = [0x61, 0x81, UInt8(inner.count)] + inner
 
-        let parsed = try IDVDataGroupParser.parseDG1(dg1)
+        let (parsed, checksumFailures) = try IDVDataGroupParser.parseDG1(dg1)
         #expect(parsed.surname == "ERIKSSON")
         #expect(parsed.documentNumber == "L898902C3")
         #expect(parsed.birthDate == "740812")
+        #expect(checksumFailures.isEmpty)
+        #expect(parsed.rawLines == [
+            "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<",
+            "L898902C36UTO7408122F1204159ZE184226B<<<<<10"
+        ])
+    }
+
+    @Test func tolerantDG1AcceptsBadCheckDigitAndRecordsIt() throws {
+        let line1 = "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<"
+        // Document-number check digit tampered 6 → 5 (as a genuine passport with a
+        // known DG1 error would read).
+        let badLine2 = "L898902C35UTO7408122F1204159ZE184226B<<<<<10"
+        let dg1 = Self.dg1Bytes(line1 + badLine2)
+
+        // Strict (default): a bad check digit fails the read.
+        #expect(throws: IDVError.self) {
+            _ = try IDVDataGroupParser.parseDG1(dg1, strictChecksums: true)
+        }
+
+        // Lenient: the data comes back and the failing field is recorded so the
+        // caller can surface it as a warning (passive auth still proves integrity).
+        let (parsed, failures) = try IDVDataGroupParser.parseDG1(dg1, strictChecksums: false)
+        #expect(parsed.surname == "ERIKSSON")
+        #expect(failures.contains("documentNumber"))
+        #expect(parsed.rawLines == [line1, badLine2])
+    }
+
+    /// Wraps an 88-char TD3 MRZ string in the DG1 TLV envelope (61 → 5F1F).
+    static func dg1Bytes(_ mrz: String) -> [UInt8] {
+        let mrzBytes = Array(mrz.utf8)
+        let inner: [UInt8] = [0x5F, 0x1F, 0x81, UInt8(mrzBytes.count)] + mrzBytes
+        return [0x61, 0x81, UInt8(inner.count)] + inner
     }
 
     @Test func locatesJPEGInFaceRecord() throws {

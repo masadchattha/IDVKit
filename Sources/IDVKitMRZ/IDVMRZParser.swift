@@ -49,32 +49,55 @@ public enum IDVMRZParser {
     /// - Throws: ``IDVError/mrzInvalidFormat(detail:)`` or
     ///   ``IDVError/mrzChecksumFailed(field:)``.
     public static func parseTD3(line1: String, line2: String) throws -> IDVMRZData {
+        let (data, failures) = try parseTD3Tolerant(line1: line1, line2: line2)
+        if let field = failures.first {
+            throw IDVError.mrzChecksumFailed(field: field)
+        }
+        return data
+    }
+
+    /// Parses TD3 without failing on a bad check digit — used for chip DG1, where
+    /// passive authentication already proves integrity and some genuine passports
+    /// carry a known DG1 check-digit error.
+    ///
+    /// - Returns: the parsed data and the names of any fields whose check digit
+    ///   did not verify (empty when all four pass). A structural problem (wrong
+    ///   line length) still throws.
+    package static func parseTD3Tolerant(line1: String, line2: String) throws -> (data: IDVMRZData, checksumFailures: [String]) {
         guard line1.count == 44, line2.count == 44 else {
             throw IDVError.mrzInvalidFormat(detail: "TD3 requires two 44-character lines")
         }
         let l1 = Array(line1.uppercased())
         let l2 = Array(line2.uppercased())
+        return (makeTD3(l1, l2, rawLines: [String(l1), String(l2)]), td3ChecksumFailures(l2))
+    }
 
+    /// The TD3 fields whose printed check digit does not verify, in MRZ order.
+    private static func td3ChecksumFailures(_ l2: [Character]) -> [String] {
+        func slice(_ r: Range<Int>) -> String {
+            String(l2[r])
+        }
+        var failures: [String] = []
+        if !isCheckDigitValid(value: slice(0 ..< 9), digit: l2[9]) {
+            failures.append("documentNumber")
+        }
+        if !isCheckDigitValid(value: slice(13 ..< 19), digit: l2[19]) {
+            failures.append("birthDate")
+        }
+        if !isCheckDigitValid(value: slice(21 ..< 27), digit: l2[27]) {
+            failures.append("expiryDate")
+        }
+        let composite = slice(0 ..< 10) + slice(13 ..< 20) + slice(21 ..< 43)
+        if !isCheckDigitValid(value: composite, digit: l2[43]) {
+            failures.append("composite")
+        }
+        return failures
+    }
+
+    /// Builds `IDVMRZData` from validated TD3 lines (no check-digit validation).
+    private static func makeTD3(_ l1: [Character], _ l2: [Character], rawLines: [String]) -> IDVMRZData {
         func slice(_ chars: [Character], _ range: Range<Int>) -> String {
             String(chars[range])
-        }
-
-        let documentNumber = slice(l2, 0 ..< 9)
-        let birthDate = slice(l2, 13 ..< 19)
-        let expiryDate = slice(l2, 21 ..< 27)
-
-        guard isCheckDigitValid(value: documentNumber, digit: l2[9]) else {
-            throw IDVError.mrzChecksumFailed(field: "documentNumber")
-        }
-        guard isCheckDigitValid(value: birthDate, digit: l2[19]) else {
-            throw IDVError.mrzChecksumFailed(field: "birthDate")
-        }
-        guard isCheckDigitValid(value: expiryDate, digit: l2[27]) else {
-            throw IDVError.mrzChecksumFailed(field: "expiryDate")
-        }
-        let composite = slice(l2, 0 ..< 10) + slice(l2, 13 ..< 20) + slice(l2, 21 ..< 43)
-        guard isCheckDigitValid(value: composite, digit: l2[43]) else {
-            throw IDVError.mrzChecksumFailed(field: "composite")
         }
 
         let names = slice(l1, 5 ..< 44)
@@ -90,14 +113,15 @@ public enum IDVMRZParser {
             format: .td3,
             documentType: slice(l1, 0 ..< 2).replacingOccurrences(of: "<", with: ""),
             issuingCountry: slice(l1, 2 ..< 5).replacingOccurrences(of: "<", with: ""),
-            documentNumber: documentNumber.replacingOccurrences(of: "<", with: ""),
+            documentNumber: slice(l2, 0 ..< 9).replacingOccurrences(of: "<", with: ""),
             nationality: slice(l2, 10 ..< 13).replacingOccurrences(of: "<", with: ""),
             surname: surname,
             givenNames: givenNames,
-            birthDate: birthDate,
-            expiryDate: expiryDate,
+            birthDate: slice(l2, 13 ..< 19),
+            expiryDate: slice(l2, 21 ..< 27),
             sex: String(l2[20]).replacingOccurrences(of: "<", with: ""),
-            optionalData: slice(l2, 28 ..< 42).replacingOccurrences(of: "<", with: "")
+            optionalData: slice(l2, 28 ..< 42).replacingOccurrences(of: "<", with: ""),
+            rawLines: rawLines
         )
     }
 
@@ -153,7 +177,8 @@ public enum IDVMRZParser {
             birthDate: birthDate,
             expiryDate: expiryDate,
             sex: String(l2[7]).replacingOccurrences(of: "<", with: ""),
-            optionalData: slice(l1, 15 ..< 30).replacingOccurrences(of: "<", with: "")
+            optionalData: slice(l1, 15 ..< 30).replacingOccurrences(of: "<", with: ""),
+            rawLines: [String(l1), String(l2), String(l3)]
         )
     }
 
@@ -205,7 +230,8 @@ public enum IDVMRZParser {
             birthDate: birthDate,
             expiryDate: expiryDate,
             sex: String(l2[20]).replacingOccurrences(of: "<", with: ""),
-            optionalData: slice(l2, 28 ..< 35).replacingOccurrences(of: "<", with: "")
+            optionalData: slice(l2, 28 ..< 35).replacingOccurrences(of: "<", with: ""),
+            rawLines: [String(l1), String(l2)]
         )
     }
 

@@ -26,7 +26,16 @@ public enum IDVError: Error, Sendable, Equatable {
     /// This device has no NFC reading capability.
     case nfcNotSupported
     case nfcSessionFailed(detail: String)
+    /// The passport moved away or the chip connection dropped mid-read.
     case nfcTagConnectionLost
+    /// The user tapped **Cancel** on Apple's NFC sheet. Apps usually show **no**
+    /// alert for this — it is a deliberate action, not an error to report.
+    case nfcUserCancelled
+    /// Apple's NFC session hit its ~20-second limit before the read finished.
+    case nfcSessionTimeout
+    /// Another read is still active, or iOS reported NFC as temporarily unavailable
+    /// at session start. Nothing was sent to a chip — wait a moment and retry.
+    case nfcBusy
     /// BAC/PACE failed — usually a wrong MRZ key (typo, unreadable MRZ).
     case accessControlFailed(detail: String)
     case dataGroupReadFailed(String)
@@ -58,6 +67,24 @@ public enum IDVError: Error, Sendable, Equatable {
     case configurationInvalid(detail: String)
 }
 
+extension IDVError {
+    /// Whether a chip read may re-open the secure channel and resume after this
+    /// error. Exhaustive on purpose: a new case must decide, not default to retry.
+    package var isRetryableDuringRead: Bool {
+        switch self {
+        case .nfcUserCancelled, .nfcSessionTimeout, .nfcNotSupported, .nfcBusy,
+             .cancelledByUser, .configurationInvalid:
+            false
+        case .nfcSessionFailed, .nfcTagConnectionLost, .accessControlFailed, .dataGroupReadFailed,
+             .passiveAuthenticationFailed, .jpeg2000DecodeFailed, .mrzScanTimeout, .mrzInvalidFormat,
+             .mrzChecksumFailed, .cameraPermissionDenied, .faceTrackingUnsupported, .livenessTimeout,
+             .livenessFailed, .noFaceDetected, .multipleFacesDetected, .faceMatchBelowThreshold,
+             .modelLoadFailed:
+            true
+        }
+    }
+}
+
 extension IDVError: LocalizedError {
     public var errorDescription: String? {
         switch self {
@@ -66,7 +93,10 @@ extension IDVError: LocalizedError {
         case let .mrzChecksumFailed(f): "MRZ check digit failed for \(f)."
         case .nfcNotSupported: "This device does not support NFC passport reading."
         case let .nfcSessionFailed(d): "NFC session failed: \(d)"
-        case .nfcTagConnectionLost: "Connection to the passport chip was lost."
+        case .nfcTagConnectionLost: "The passport moved — hold it still against the top of your phone and try again."
+        case .nfcUserCancelled: "Passport scan cancelled."
+        case .nfcSessionTimeout: "Reading took too long. Hold the passport still against the phone and try again."
+        case .nfcBusy: "NFC is busy — wait a moment and try again."
         case let .accessControlFailed(d): "Could not authenticate with the chip: \(d)"
         case let .dataGroupReadFailed(dg): "Failed to read \(dg) from the chip."
         case let .passiveAuthenticationFailed(d): "Chip authenticity could not be verified: \(d)"

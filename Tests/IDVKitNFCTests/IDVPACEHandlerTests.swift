@@ -20,50 +20,25 @@ import Testing
 
 struct PACEHandlerTests {
     /// Standard ICAO PACE worked-example MRZ (yields K_π = 89DED1…2849DD).
-    private let mrzKey = IDVMRZKey(documentNumber: "T22000129", birthDate: "640812", expiryDate: "101031")
-
-    private func tlv(_ tag: UInt8, _ value: [UInt8]) -> [UInt8] {
-        let len: [UInt8] = value.count < 0x80 ? [UInt8(value.count)] : [0x81, UInt8(value.count)]
-        return [tag] + len + value
-    }
+    private let mrzKey = IDVMRZKey(documentNumber: AppendixG.documentNumber, birthDate: AppendixG.birthDate, expiryDate: AppendixG.expiryDate)
 
     @Test func fullPACEHandshakeMatchesAppendixG() async throws {
-        let z = Hex.bytes("95A3A016522EE98D01E76CB6B98B42C3")
-        let chipMapPub = Hex.bytes("04" +
-            "824FBA91C9CBE26BEF53A0EBE7342A3BF178CEA9F45DE0B70AA601651FBA3F57" +
-            "30D8C879AAA9C9F73991E61B58F4D52EB87A0A0C709A49DC63719363CCD13C54")
-        let chipEphPub = Hex.bytes("04" +
-            "9E880F842905B8B3181F7AF7CAA9F0EFB743847F44A306D2D28C1D9EC65DF6DB" +
-            "7764B22277A2EDDC3C265A9F018F9CB852E111B768B326904B59A0193776F094")
-        let tPICC = Hex.bytes("3ABB9674BCE93C08")
-
         // Scripted chip: each response carries its data DO plus the 9000 status.
         let ok: [UInt8] = [0x90, 0x00]
-        let chip = ScriptedChip(responses: [
-            ok, // MSE:Set AT
-            tlv(0x7C, tlv(0x80, z)) + ok, // GET NONCE
-            tlv(0x7C, tlv(0x82, chipMapPub)) + ok, // map nonce
-            tlv(0x7C, tlv(0x84, chipEphPub)) + ok, // key agreement
-            tlv(0x7C, tlv(0x86, tPICC)) + ok // mutual auth
-        ])
+        let chip = ScriptedChip(responses: [ok] + AppendixG.generalAuthenticateResponses.map { $0 + ok })
 
         // Inject Appendix G's terminal mapping key t, then ephemeral key d.
-        let scalars = try [
-            #require(BigUInt(Hex.string(Hex.bytes("7F4EF07B9EA82FD78AD689B38D0BC78CF21F249D953BC46F4C6E19259C010F99")), radix: 16)),
-            #require(BigUInt(Hex.string(Hex.bytes("A73FB703AC1436A18E0CFA5ABB3F7BEC7A070E7A6788486BEE230C4A22762595")), radix: 16))
-        ]
+        let scalars = try AppendixG.terminalScalarsHex.map { try #require(BigUInt($0, radix: 16)) }
         let scalarBox = ScalarBox(scalars)
 
-        let info = try IDVPACEInfo.parse(cardAccess: Hex.bytes(
-            "31 14 30 12 06 0A 04 00 7F 00 07 02 02 04 02 02 02 01 02 02 01 0D"
-        ))
+        let info = try IDVPACEInfo.parse(cardAccess: AppendixG.cardAccess)
         let curve = try #require(IDVStandardCurves.curve(parameterId: 13))
 
         let handler = IDVPACEHandler(mrzKey: mrzKey, info: info, curve: curve)
         let sm = try await handler.run(transceive: chip.transceive) { _ in scalarBox.next() }
 
-        #expect(Hex.string(sm.ksEnc) == "F5F0E35C0D7161EE6724EE513A0D9A7F")
-        #expect(Hex.string(sm.ksMac) == "FE251C7858B356B24514B3BD5F4297D1")
+        #expect(Hex.string(sm.ksEnc) == AppendixG.ksEncHex)
+        #expect(Hex.string(sm.ksMac) == AppendixG.ksMacHex)
         #expect(sm.mode == .aes)
         #expect(sm.ssc.count == 16)
     }

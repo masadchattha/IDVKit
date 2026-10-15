@@ -7,6 +7,7 @@
 //  https://github.com/masadchattha/IDVKit
 //
 
+import CoreGraphics
 import Foundation
 
 // MARK: - Document data
@@ -48,12 +49,20 @@ public struct IDVMRZData: Sendable, Equatable, Codable {
     public var sex: String
     /// Optional data element (personal number on many passports).
     public var optionalData: String
+    /// The MRZ exactly as stored, one entry per physical line, with `<` fillers
+    /// intact (e.g. `D<<` for Germany, the full document code `PO`).
+    ///
+    /// The other fields are normalised for display — fillers stripped or turned
+    /// to spaces. `rawLines` is the un-normalised source, so an app that builds a
+    /// stable identity hash does not have to reverse the normalisation. Empty
+    /// when the MRZ was constructed directly rather than parsed.
+    public var rawLines: [String]
 
     public init(
         format: Format, documentType: String, issuingCountry: String,
         documentNumber: String, nationality: String, surname: String,
         givenNames: String, birthDate: String, expiryDate: String,
-        sex: String, optionalData: String = ""
+        sex: String, optionalData: String = "", rawLines: [String] = []
     ) {
         self.format = format
         self.documentType = documentType
@@ -66,6 +75,30 @@ public struct IDVMRZData: Sendable, Equatable, Codable {
         self.expiryDate = expiryDate
         self.sex = sex
         self.optionalData = optionalData
+        self.rawLines = rawLines
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case format, documentType, issuingCountry, documentNumber, nationality
+        case surname, givenNames, birthDate, expiryDate, sex, optionalData, rawLines
+    }
+
+    // Hand-rolled so `rawLines`, added in 1.1.0, decodes as `[]` from payloads
+    // encoded before it existed, rather than failing the decode.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        format = try c.decode(Format.self, forKey: .format)
+        documentType = try c.decode(String.self, forKey: .documentType)
+        issuingCountry = try c.decode(String.self, forKey: .issuingCountry)
+        documentNumber = try c.decode(String.self, forKey: .documentNumber)
+        nationality = try c.decode(String.self, forKey: .nationality)
+        surname = try c.decode(String.self, forKey: .surname)
+        givenNames = try c.decode(String.self, forKey: .givenNames)
+        birthDate = try c.decode(String.self, forKey: .birthDate)
+        expiryDate = try c.decode(String.self, forKey: .expiryDate)
+        sex = try c.decode(String.self, forKey: .sex)
+        optionalData = try c.decodeIfPresent(String.self, forKey: .optionalData) ?? ""
+        rawLines = try c.decodeIfPresent([String].self, forKey: .rawLines) ?? []
     }
 
     /// The document category inferred from the MRZ, per ICAO Doc 9303.
@@ -100,26 +133,53 @@ public struct IDVMRZData: Sendable, Equatable, Codable {
 }
 
 /// Everything read from an eMRTD (passport) chip.
-public struct IDVPassportData: Sendable, Equatable {
+///
+/// `@unchecked Sendable`: the only non-`Sendable` member is ``faceImage``, a
+/// `CGImage`, which is immutable once created and safe to share across threads.
+public struct IDVPassportData: @unchecked Sendable, Equatable {
     /// MRZ data parsed from the chip's DG1 data group.
     public var mrz: IDVMRZData
-    /// The holder's photo from DG2, re-encoded as JPEG data.
-    /// JPEG2000 originals are decoded internally by ``IDVJPEG2000Decoder``.
+    /// The holder's photo from DG2, encoded as JPEG data at quality `0.9`.
+    /// A JPEG2000 original (most passports) is decoded internally by
+    /// ``IDVJPEG2000Decoder`` and re-encoded; a JPEG original is passed through.
+    /// For a lossless, ready-to-use image prefer ``faceImage``.
     public var faceImageData: Data?
+    /// The holder's photo as a decoded `CGImage`, straight from the chip's DG2
+    /// without the extra JPEG re-encode that ``faceImageData`` carries — use this
+    /// when you want the image at full fidelity (e.g. face matching). `nil` when
+    /// DG2 was not read or could not be decoded.
+    public var faceImage: CGImage?
     /// Data groups that were present on the chip and successfully read.
     public var dataGroupsRead: [IDVDataGroupID]
     /// Chip-genuineness verification results. Never optional —
     /// "not performed" is always explicit, never silent.
     public var authenticity: IDVChipAuthenticityResult
+    /// Non-fatal issues found while reading, in plain language — e.g. a DG1
+    /// check-digit mismatch tolerated because ``IDVNFCConfiguration/strictMRZChecksums``
+    /// is `false`. Empty on a clean read.
+    public var warnings: [String]
 
     public init(
-        mrz: IDVMRZData, faceImageData: Data?,
-        dataGroupsRead: [IDVDataGroupID], authenticity: IDVChipAuthenticityResult
+        mrz: IDVMRZData, faceImageData: Data?, faceImage: CGImage? = nil,
+        dataGroupsRead: [IDVDataGroupID], authenticity: IDVChipAuthenticityResult,
+        warnings: [String] = []
     ) {
         self.mrz = mrz
         self.faceImageData = faceImageData
+        self.faceImage = faceImage
         self.dataGroupsRead = dataGroupsRead
         self.authenticity = authenticity
+        self.warnings = warnings
+    }
+
+    /// Equality ignores ``faceImage`` (a `CGImage` has no value equality); the
+    /// JPEG bytes in ``faceImageData`` stand in for the photo.
+    public static func == (lhs: IDVPassportData, rhs: IDVPassportData) -> Bool {
+        lhs.mrz == rhs.mrz
+            && lhs.faceImageData == rhs.faceImageData
+            && lhs.dataGroupsRead == rhs.dataGroupsRead
+            && lhs.authenticity == rhs.authenticity
+            && lhs.warnings == rhs.warnings
     }
 }
 
@@ -167,6 +227,17 @@ public struct IDVChipAuthenticityResult: Sendable, Equatable {
             switch self {
             case let .failed(reason), let .notPerformed(reason): reason
             case .passed, .notSupportedByChip: nil
+            }
+        }
+
+        /// Short, PII-free label for the diagnostic log (never carries the reason,
+        /// which could contain chip-specific detail).
+        package var logLabel: String {
+            switch self {
+            case .passed: "passed"
+            case .failed: "failed"
+            case .notPerformed: "not performed"
+            case .notSupportedByChip: "not supported"
             }
         }
     }

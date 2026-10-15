@@ -53,6 +53,26 @@ struct IDVChipAuthenticationParameters {
         return nil
     }
 
+    /// Whether DG14 advertises Chip Authentication at all (any `id-CA-*` entry),
+    /// regardless of whether IDVKit can perform that algorithm. Lets the caller
+    /// tell "chip has no CA" (report *not supported by chip*) apart from "chip has
+    /// CA but in an algorithm we don't do yet, e.g. classic DH" (report *not
+    /// performed*) — so a genuine chip is never mislabeled as a failure.
+    static func advertisesChipAuthentication(dg14: [UInt8]) -> Bool {
+        guard let root = try? IDVBERTLV.parse(dg14).tlv, root.tag.first == 0x6E,
+              let setNode = try? IDVSecurityObject.parseDERorBER(root.value[...]),
+              case let .constructed(entries) = setNode.content else { return false }
+        for entry in entries {
+            guard case let .constructed(fields) = entry.content,
+                  let first = Array(fields).first,
+                  let oid = try? ASN1ObjectIdentifier(derEncoded: first) else { continue }
+            if oid.description.hasPrefix("0.4.0.127.0.7.2.2.3") {
+                return true
+            } // id-CA-*
+        }
+        return false
+    }
+
     /// Parses DG14, returning Chip Authentication parameters if present.
     static func parse(dg14: [UInt8]) -> IDVChipAuthenticationParameters? {
         // DG14 = 6E <len> { SET OF SecurityInfo }.

@@ -28,7 +28,7 @@
 
 </div>
 
-> ⚠️ **Status: early release (`0.1.0`).** The full pipeline — document scan, NFC chip read, passive + active authentication, and face match + liveness — is implemented and validated on device. APIs may still shift before `1.0`.
+> ✅ **Status: stable (`1.0.0`).** The full pipeline — document scan, NFC chip read, passive + active authentication, and face match + liveness — is implemented and validated on device. The public API is stable; pin **Up to Next Major from `1.0.0`**.
 
 ## Contents
 
@@ -178,7 +178,7 @@ https://github.com/masadchattha/IDVKit
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/masadchattha/IDVKit", from: "0.1.0")
+    .package(url: "https://github.com/masadchattha/IDVKit", from: "1.0.0")
 ]
 ```
 </details>
@@ -186,7 +186,7 @@ dependencies: [
 <details>
 <summary>Carthage / CocoaPods</summary>
 
-Prebuilt `IDVKit.xcframework` bundles will be attached to GitHub releases from `0.1.0`. Until then, SPM is the supported path.
+Prebuilt `IDVKit.xcframework` bundles will be attached to GitHub releases from `1.0.0`. Until then, SPM is the supported path.
 </details>
 
 ## Quick start

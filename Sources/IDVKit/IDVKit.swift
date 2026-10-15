@@ -19,5 +19,5 @@
 /// Package-level metadata.
 public enum IDVKit {
     /// The SDK version, mirroring the release tag.
-    public static let version = "0.1.0"
+    public static let version = "1.0.0"
 }

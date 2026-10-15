@@ -47,7 +47,15 @@ enum IDVDataGroupParser {
     /// Parses DG1 (tag 61 → 5F1F) into structured MRZ data. The MRZ body is
     /// the concatenated MRZ lines with line breaks removed; this splits TD3
     /// (2×44) and delegates field parsing to ``IDVMRZParser``.
-    static func parseDG1(_ bytes: [UInt8]) throws -> IDVMRZData {
+    ///
+    /// - Parameter strictChecksums: when `true` a bad DG1 check digit throws;
+    ///   when `false` the data is returned and the failing field names come back
+    ///   in `checksumFailures` (passive auth already proves DG1 integrity).
+    /// - Returns: the parsed MRZ plus any check-digit failures (always empty when
+    ///   `strictChecksums` is `true`, since those throw).
+    static func parseDG1(
+        _ bytes: [UInt8], strictChecksums: Bool = true
+    ) throws -> (mrz: IDVMRZData, checksumFailures: [String]) {
         let root = try IDVBERTLV.parse(bytes).tlv
         guard let mrzTLV = root.first(tag: 0x5F1F) else {
             throw IDVError.dataGroupReadFailed("DG1 missing MRZ (tag 5F1F)")
@@ -59,7 +67,11 @@ enum IDVDataGroupParser {
         case 88: // TD3: two lines of 44
             let line1 = String(mrzString.prefix(44))
             let line2 = String(mrzString.suffix(44))
-            return try IDVMRZParser.parseTD3(line1: line1, line2: line2)
+            let (mrz, failures) = try IDVMRZParser.parseTD3Tolerant(line1: line1, line2: line2)
+            if strictChecksums, let field = failures.first {
+                throw IDVError.mrzChecksumFailed(field: field)
+            }
+            return (mrz, strictChecksums ? [] : failures)
         default:
             throw IDVError.dataGroupReadFailed("unsupported MRZ length \(mrzString.count) in DG1")
         }
